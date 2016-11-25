@@ -5,10 +5,10 @@
 #include "util.h"
 #include "meta.h"
 
-#include <multiverso/lock.h>
-#include <multiverso/log.h>
-#include <multiverso/row.h>
-#include <multiverso/row_iter.h>
+//#include <multiverso/lock.h>
+#include <multiverso/util/log.h>
+//#include <multiverso/row.h>
+//#include <multiverso/row_iter.h>
 
 namespace multiverso { namespace lightlda
 {

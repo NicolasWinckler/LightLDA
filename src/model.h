@@ -10,7 +10,7 @@
 #include <string>
 
 #include "common.h"
-#include <multiverso/meta.h>
+//#include <multiverso/meta.h>
 
 namespace multiverso 
 { 
