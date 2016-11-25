@@ -3,13 +3,9 @@ cmake_minimum_required(VERSION 2.8)
 PROJECT(LIGHTLDA)
 
 OPTION(USE_HDFS "won't use hdfs on default, set ON to enable" OFF)
-OPTION(TEST "Build all tests." ON)
-OPTION(USE_ZMQ "weather to build with ZeroMQ.(default: OFF)" OFF)
-OPTION(INSTALL_MULTIVERSO "whether install Multiverso to /usr/local/lib" ON)
-option(ENABLE_DCASGD "Build with DC-ASGD supported" ON)
 
-
-set(USE_MULTIVERSO_PATH "/home/nw/quanox/soft/DMTK/Multiverso_inst")
+set(USE_ZMQ_PATH "~/quanox/soft/")
+set(USE_MULTIVERSO_PATH "~/quanox/soft/DMTK/Multiverso_inst")
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules" ${CMAKE_MODULE_PATH})
 find_package(MPI REQUIRED)

@@ -1,13 +1,13 @@
 
 
-SET(SEARCH_LIB_PATHS 
-    "/usr/lib/x86_64-linux-gnu"
-    "/usr/lib"
-    )
-
 SET(SEARCH_HEADER_PATHS 
     "/usr/local/include"
     "/usr/include"
+    )
+
+SET(SEARCH_LIB_PATHS 
+    "/usr/lib/x86_64-linux-gnu"
+    "/usr/lib"
     )
 
 if(USE_ZMQ_PATH)
@@ -19,39 +19,46 @@ if(NOT ZeroMQ_FIND_QUIETLY)
   message(STATUS "Looking for ZeroMQ...")
 endif(NOT ZeroMQ_FIND_QUIETLY)
 
-#find_path(ZMQ_INCLUDE_DIR NAMES zmq.hpp zmq_utils.h
-#  PATHS ${SEARCH_HEADER_PATHS}
-#  NO_DEFAULT_PATH
-#  DOC   "Path to ZeroMQ include header files."
-#)
+if(USE_ZMQ_PATH)
+  find_path(ZMQ_INCLUDE_DIR NAMES zmq.hpp zmq_utils.h
+    PATHS ${SEARCH_HEADER_PATHS}
+    NO_DEFAULT_PATH
+    DOC   "Path to ZeroMQ include header files."
+  )
+else()
+  find_path(ZMQ_INCLUDE_DIR NAMES zmq.hpp zmq_utils.h
+    PATHS ${SEARCH_HEADER_PATHS}
+    DOC   "Path to ZeroMQ include header files."
+  )
+endif()
 
-find_path(ZMQ_INCLUDE_DIR NAMES zmq.hpp zmq_utils.h
-  PATHS ${SEARCH_HEADER_PATHS}
-  DOC   "Path to ZeroMQ include header files."
+
+
+if(USE_ZMQ_PATH)
+  find_library(ZMQ_LIBRARY_SHARED NAMES libzmq.dylib libzmq.so
+    PATHS ${SEARCH_LIB_PATHS}
+    NO_DEFAULT_PATH
+    DOC   "Path to libzmq.dylib libzmq.so."
+  )
+else()
+  find_library(ZMQ_LIBRARY_SHARED NAMES libzmq.dylib libzmq.so
+    PATHS ${SEARCH_LIB_PATHS}
+    DOC   "Path to libzmq.dylib libzmq.so."
+  )
+endif()
+
+if(USE_ZMQ_PATH)
+  find_library(ZMQ_LIBRARY_STATIC NAMES libzmq.a
+    PATHS ${ZMQ_DIR}/lib
+    NO_DEFAULT_PATH
+    DOC   "Path to libzmq.a."
 )
-
-#find_library(ZMQ_LIBRARY_SHARED NAMES libzmq.dylib libzmq.so
-#  PATHS ${SEARCH_LIB_PATHS}
-#  NO_DEFAULT_PATH
-#  DOC   "Path to libzmq.dylib libzmq.so."
-#)
-
-find_library(ZMQ_LIBRARY_SHARED NAMES libzmq.dylib libzmq.so
-  PATHS ${SEARCH_LIB_PATHS}
-  DOC   "Path to libzmq.dylib libzmq.so."
-)
-
-#find_library(ZMQ_LIBRARY_STATIC NAMES libzmq.a
-#  PATHS ${ZMQ_DIR}/lib
-#  NO_DEFAULT_PATH
-#  DOC   "Path to libzmq.a."
-#)
-
-find_library(ZMQ_LIBRARY_STATIC NAMES libzmq.a
-  PATHS ${SEARCH_LIB_PATHS}
-  DOC   "Path to libzmq.a."
-)
-
+else()
+  find_library(ZMQ_LIBRARY_STATIC NAMES libzmq.a
+    PATHS ${SEARCH_LIB_PATHS}
+    DOC   "Path to libzmq.a."
+  )
+endif()
 
 IF(ZMQ_INCLUDE_DIR AND ZMQ_LIBRARY_SHARED AND ZMQ_LIBRARY_STATIC)
   SET(ZMQ_FOUND TRUE)
