@@ -49,7 +49,7 @@ endif()
 
 if(USE_ZMQ_PATH)
   find_library(ZMQ_LIBRARY_STATIC NAMES libzmq.a
-    PATHS ${ZMQ_DIR}/lib
+    PATHS ${USE_ZMQ_PATH}/lib
     NO_DEFAULT_PATH
     DOC   "Path to libzmq.a."
 )

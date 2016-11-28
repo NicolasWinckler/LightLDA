@@ -11,7 +11,8 @@ message(STATUS "Looking for Multiverso...")
 
 set(Multiverso_H multiverso.h)
 set(LIBMultiverso_SHARED libmultiverso.dylib libmultiverso.so) # for new multiverso 
-set(LIBMultiverso_STATIC libmultiverso_static.a) # for LightLDA with old multiverso 
+#set(LIBMultiverso_STATIC libmultiverso_static.a) # for LightLDA with old multiverso 
+set(LIBMultiverso_STATIC libmultiverso.a) # for LightLDA with old multiverso 
 
 
 ##################################### where to search Multiverso?
@@ -41,6 +42,12 @@ endif()
 if(DEFINED ENV{MULTIVERSOPATH} AND USE_MULTIVERSO_PATH)
   message(WARNING "Both the environement variable MULTIVERSOPATH, and the cmake variable USE_MULTIVERSO_PATH are defined. Only the USE_MULTIVERSO_PATH will be used")
 endif()
+
+
+message(STATUS "USE_MULTIVERSO_PATH = ${USE_MULTIVERSO_PATH}")
+message(STATUS "SEARCH_LIB_PATHS = ${SEARCH_LIB_PATHS}")
+message(STATUS "SEARCH_HEADER_PATHS = ${SEARCH_HEADER_PATHS}")
+
 
 #####################################
 

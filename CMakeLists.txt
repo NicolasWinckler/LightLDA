@@ -4,11 +4,14 @@ PROJECT(LIGHTLDA)
 
 OPTION(USE_HDFS "won't use hdfs on default, set ON to enable" OFF)
 
-set(USE_ZMQ_PATH "~/quanox/soft/")
-set(USE_MULTIVERSO_PATH "~/quanox/soft/DMTK/Multiverso_inst")
+set(USE_ZMQ_PATH "${CMAKE_SOURCE_DIR}/multiverso/third_party")
+set(MPI_CXX_COMPILER "${CMAKE_SOURCE_DIR}/multiverso/third_party/bin/mpicxx")
+set(USE_MULTIVERSO_PATH "${CMAKE_SOURCE_DIR}/multiverso")
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules" ${CMAKE_MODULE_PATH})
 find_package(MPI REQUIRED)
+
+
 find_package(ZeroMQ 4.1.3 REQUIRED)
 find_package(Multiverso REQUIRED)
 
