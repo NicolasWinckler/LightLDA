@@ -69,6 +69,17 @@ find_library(Multiverso_LIBRARY_STATIC NAMES ${LIBMultiverso_STATIC}
 
 set(Multiverso_FOUND FALSE)
 #####################################
+
+if(Multiverso_LIBRARY_SHARED)
+  set(Multiverso_LIBRARIES "${Multiverso_LIBRARY_SHARED}" ${Multiverso_LIBRARIES})
+endif()
+
+
+if(Multiverso_LIBRARY_STATIC)
+  set(Multiverso_LIBRARIES "${Multiverso_LIBRARY_STATIC}" ${Multiverso_LIBRARIES})
+endif()
+
+
 if(Multiverso_LIBRARY_SHARED OR Multiverso_LIBRARY_STATIC) # OR or AND ?
   if(Multiverso_INCLUDE_DIR)
     set(Multiverso_FOUND TRUE)
@@ -78,7 +89,7 @@ endif()
 
 #####################################
 if(Multiverso_FOUND)
-  set(Multiverso_LIBRARIES "${Multiverso_LIBRARY_STATIC};${Multiverso_LIBRARY_SHARED}")
+  #set(Multiverso_LIBRARIES "${Multiverso_LIBRARY_STATIC};${Multiverso_LIBRARY_SHARED}")
   if(NOT Multiverso_FIND_QUIETLY)
     message(STATUS "Looking for Multiverso... - found ${Multiverso_LIBRARIES}")
   endif(NOT Multiverso_FIND_QUIETLY)
