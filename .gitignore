@@ -2,3 +2,4 @@ bin
 multiverso
 *.o
 example/data
+build/
