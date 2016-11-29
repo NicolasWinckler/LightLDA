@@ -1,62 +1,35 @@
 
 
-
-
-
-
-set(HEADERS 
-	alias_table.h
-	common.h
-	data_block.h
-	data_stream.h
-	document.h
-	eval.h
-	meta.h
-	model.h
-	sampler.h
-	trainer.h
-	util.h
-	)
-
-set(SRCS 
-	alias_table.cpp
-	common.cpp
-	data_block.cpp
-	data_stream.cpp
-	document.cpp
-	eval.cpp
-	meta.cpp
-	model.cpp
-	sampler.cpp
-	trainer.cpp
-	)
-
+set(HEADERS inferer.h)
+set(SRCS inferer.cpp)
 
 set(INCLUDE_DIRECTORIES 
 	${ZMQ_INCLUDE_DIR}
 	${MPI_CXX_INCLUDE_PATH}
 	${CMAKE_CURRENT_SOURCE_DIR}
+	${CMAKE_SOURCE_DIR}/src
 	${Multiverso_INCLUDE_DIR}/..
 	)
 
 
 
 set(DEPENDENCIES
-	#${Boost_LIBRARIES}
 	${ZMQ_LIBRARIES}
 	${MPI_CXX_LIBRARIES}
 	${Multiverso_LIBRARIES}
-	#mpich 
-	#mpl 
 	pthread
+	lightlda_base
 )
 
-#message(STATUS "Multiverso_INCLUDE_DIR ----------> ${Multiverso_INCLUDE_DIR}")
-#message(STATUS "Multiverso_LIBRARIES ----------> ${Multiverso_LIBRARIES}")
+
+
+message(STATUS "Multiverso_INCLUDE_DIR ----------> ${Multiverso_INCLUDE_DIR}")
+message(STATUS "Multiverso_LIBRARIES ----------> ${Multiverso_LIBRARIES}")
+
 
 ####### Generate library
 
-set(LIBRARY_NAME lightlda_base)
+set(LIBRARY_NAME infer_base)
 
 include_directories(${INCLUDE_DIRECTORIES})
 
@@ -72,15 +45,15 @@ install(FILES ${HEADERS} DESTINATION include)
 
 
 ####### Generate Executable
-set(DEPENDENCIES lightlda_base)
-set(SRCS lightlda.cpp)
-set(EXE_NAME lightlda)
+set(DEPENDENCIES infer_base)
+set(SRCS infer.cpp)
+set(EXE_NAME infer)
 
 
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 Add_Executable(${EXE_NAME} ${SRCS})
-target_link_libraries(${EXE_NAME} lightlda_base)
+target_link_libraries(${EXE_NAME} ${DEPENDENCIES})
 install(TARGETS ${EXE_NAME} DESTINATION bin)
 
 

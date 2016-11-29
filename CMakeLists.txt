@@ -15,7 +15,7 @@ find_package(MPI REQUIRED)
 find_package(ZeroMQ 4.1.3 REQUIRED)
 find_package(Multiverso REQUIRED)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=c++11 -O3")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -Wall -std=c++11 -O3")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-sign-compare -fno-omit-frame-pointer")
 
 if(USE_HDFS)
@@ -30,8 +30,8 @@ endif(USE_HDFS)
 
 #set(MULTIVERSO_DIR ${PROJECT_SOURCE_DIR})
 ADD_SUBDIRECTORY(src)
-#ADD_SUBDIRECTORY(inference)
-#ADD_SUBDIRECTORY(preprocess)
+ADD_SUBDIRECTORY(inference)
+ADD_SUBDIRECTORY(preprocess)
 
 
 
