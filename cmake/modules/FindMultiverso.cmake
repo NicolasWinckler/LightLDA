@@ -57,7 +57,7 @@ if(DEFINED ENV{MULTIVERSOPATH} OR USE_MULTIVERSO_PATH)
 	# if cmake or env var defined, search only in the hint directory (using NO_DEFAULT_PATH) 
 	# and do not search in the system 
 	set(SEARCH_LIB_PATHS "${MULTIVERSO_PREFIX}/lib")
-  	set(SEARCH_HEADER_PATHS "${MULTIVERSO_PREFIX}/include")
+  set(SEARCH_HEADER_PATHS "${MULTIVERSO_PREFIX}/include")
 	find_path(Multiverso_INCLUDE_DIR NAMES ${Multiverso_H} 
 	  PATHS ${SEARCH_HEADER_PATHS}
 	  NO_DEFAULT_PATH
