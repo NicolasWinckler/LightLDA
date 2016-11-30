@@ -12,27 +12,30 @@ set(INCLUDE_DIRECTORIES
 	)
 
 set(DEPENDENCIES
-	${ZMQ_LIBRARIES}
-	${MPI_CXX_LIBRARIES}
+	BaseLightLDA
 	${Multiverso_LIBRARIES}
 	pthread
-	lightlda_base
+	${ZMQ_LIBRARIES}
+	${MPI_CXX_LIBRARIES}
 )
 
 
 ####### Generate library
-set(LIBRARY_NAME infer_base)
+set(LIBRARY_NAME BaseInfer)
 
 include_directories(${INCLUDE_DIRECTORIES})
-Add_Library(${LIBRARY_NAME} SHARED ${SRCS} ${HEADERS})
+Add_Library(${LIBRARY_NAME} SHARED ${SRCS})
+Add_Library(${LIBRARY_NAME}_static STATIC ${SRCS})
 target_link_libraries(${LIBRARY_NAME} ${DEPENDENCIES})
+target_link_libraries(${LIBRARY_NAME}_static ${DEPENDENCIES})
 
 install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
+install(TARGETS ${LIBRARY_NAME}_static DESTINATION lib)
 install(FILES ${HEADERS} DESTINATION include)
 
 
 ####### Generate Executable
-set(DEPENDENCIES infer_base)
+set(DEPENDENCIES BaseInfer)
 set(SRCS infer.cpp)
 set(EXE_NAME infer)
 

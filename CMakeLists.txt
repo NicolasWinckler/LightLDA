@@ -4,9 +4,9 @@ PROJECT(LIGHTLDA)
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules" ${CMAKE_MODULE_PATH})
 
-set(USE_ZMQ_PATH "${CMAKE_SOURCE_DIR}/multiverso/third_party")
-set(MPI_CXX_COMPILER "${CMAKE_SOURCE_DIR}/multiverso/third_party/bin/mpicxx")
-set(USE_MULTIVERSO_PATH "${CMAKE_SOURCE_DIR}/multiverso")
+#set(USE_ZMQ_PATH "${CMAKE_SOURCE_DIR}/multiverso/third_party")
+#set(MPI_CXX_COMPILER "${CMAKE_SOURCE_DIR}/multiverso/third_party/bin/mpicxx")
+#set(USE_MULTIVERSO_PATH "${CMAKE_SOURCE_DIR}/multiverso")
 
 find_package(MPI REQUIRED)
 find_package(ZeroMQ 4.1.3 REQUIRED)
