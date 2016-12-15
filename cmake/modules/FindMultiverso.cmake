@@ -1,11 +1,7 @@
-
-
-
 # Set the following variables
 # Multiverso_FOUND
 # Multiverso_INCLUDE_DIR
 # Multiverso_LIBRARIES
-# todo: Multiverso_BINARY --> do one for the LightLDA Multiverso?
 
 if(NOT Multiverso_FIND_QUIETLY)
 	message(STATUS "Looking for Multiverso...")
@@ -16,14 +12,14 @@ set(Multiverso_H "multiverso/multiverso.h")
 
 #define shared and static libs to search for 
 set(LIBMultiverso_SHARED libmultiverso.dylib libmultiverso.so) 
-set(LIBMultiverso_STATIC libmultiverso.a)
+set(LIBMultiverso_STATIC libmultiverso_static.a)
 
 
-##################################### where to search Multiverso?
-# default system directory search, will be overwritten if
-# - cmake USE_MULTIVERSO_PATH variable defined
-# - MULTIVERSOPATH environment variable defined
-# - if both USE_MULTIVERSO_PATH and MULTIVERSOPATH variables are defined, use the USE_MULTIVERSO_PATH
+##################################################################
+# default system directory search (see below), will be overwritten if
+# - cmake USE_MULTIVERSO_PREFIX variable defined
+# - MULTIVERSO_PREFIX environment variable defined
+# - if both USE_MULTIVERSO_PREFIX and MULTIVERSO_PREFIX variables are defined, use the USE_MULTIVERSO_PREFIX
 SET(SEARCH_HEADER_PATHS 
     "/usr/local/include"
     "/usr/include"
@@ -31,29 +27,28 @@ SET(SEARCH_HEADER_PATHS
 
 SET(SEARCH_LIB_PATHS 
 	"/usr/local/lib"
-    "/usr/lib/x86_64-linux-gnu"
     "/usr/lib"
     )
 
 
-# if MULTIVERSOPATH env variable defined (and no cmake command), search in this directory
-if(DEFINED ENV{MULTIVERSOPATH} AND NOT USE_MULTIVERSO_PATH)
-	set(MULTIVERSO_PREFIX "$ENV{MULTIVERSOPATH}")
+# if MULTIVERSO_PREFIX env variable defined (and no cmake command), search in this directory
+if(DEFINED ENV{MULTIVERSO_PREFIX} AND NOT USE_MULTIVERSO_PREFIX)
+	set(MULTIVERSO_PREFIX "$ENV{MULTIVERSO_PREFIX}")
 endif()
 
-# if USE_MULTIVERSO_PATH cmake variable defined, search in this directory
-if(USE_MULTIVERSO_PATH)
-	set(MULTIVERSO_PREFIX "${USE_MULTIVERSO_PATH}")
+# if USE_MULTIVERSO_PREFIX cmake variable defined, search in this directory
+if(USE_MULTIVERSO_PREFIX)
+	set(MULTIVERSO_PREFIX "${USE_MULTIVERSO_PREFIX}")
 endif()
 
 # print warning if both, cmake and env var defined. print that we look only at the cmake var in this case
-if(DEFINED ENV{MULTIVERSOPATH} AND USE_MULTIVERSO_PATH)
-	message(WARNING "Both the environement variable MULTIVERSOPATH, and the cmake variable USE_MULTIVERSO_PATH are defined. Only the USE_MULTIVERSO_PATH will be used")
+if(DEFINED ENV{MULTIVERSO_PREFIX} AND USE_MULTIVERSO_PREFIX)
+	message(WARNING "Both the environement variable MULTIVERSO_PREFIX, and the cmake variable USE_MULTIVERSO_PREFIX are defined. Only the USE_MULTIVERSO_PREFIX will be used")
 endif()
 
 #####################################
 
-if(DEFINED ENV{MULTIVERSOPATH} OR USE_MULTIVERSO_PATH)
+if(DEFINED ENV{MULTIVERSO_PREFIX} OR USE_MULTIVERSO_PREFIX)
 	# if cmake or env var defined, search only in the hint directory (using NO_DEFAULT_PATH) 
 	# and do not search in the system 
 	set(SEARCH_LIB_PATHS "${MULTIVERSO_PREFIX}/lib")

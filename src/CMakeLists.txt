@@ -36,7 +36,7 @@ set(INCLUDE_DIRECTORIES
 
 # Note: order of the dependencies matter for linking with static libs
 set(DEPENDENCIES
-	${Multiverso_LIBRARIES}
+	#${Multiverso_LIBRARIES}#zmq runtime error if shared and static
 	pthread
 	${ZMQ_LIBRARIES}
 	${MPI_CXX_LIBRARIES}
@@ -44,13 +44,13 @@ set(DEPENDENCIES
 )
 
 ####### Generate BaseLightLDA library
-set(LIBRARY_NAME BaseLightLDA)
+set(LIBRARY_NAME lightlda_core)
 
 include_directories(${INCLUDE_DIRECTORIES})
 Add_Library(${LIBRARY_NAME} SHARED ${SRCS})
 Add_Library(${LIBRARY_NAME}_static STATIC ${SRCS})
-target_link_libraries(${LIBRARY_NAME} ${DEPENDENCIES})
-target_link_libraries(${LIBRARY_NAME}_static ${DEPENDENCIES})
+target_link_libraries(${LIBRARY_NAME} ${DEPENDENCIES} ${Multiverso_LIBRARY_SHARED})
+target_link_libraries(${LIBRARY_NAME}_static ${DEPENDENCIES} ${Multiverso_LIBRARY_STATIC})
 
 
 install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
@@ -66,8 +66,8 @@ set(EXE_NAME lightlda)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 Add_Executable(${EXE_NAME} ${SRCS})
 
-target_link_libraries(${EXE_NAME} BaseLightLDA ${DEPENDENCIES})
-#target_link_libraries(${EXE_NAME} BaseLightLDA_static ${DEPENDENCIES})
+#target_link_libraries(${EXE_NAME} ${LIBRARY_NAME} ${DEPENDENCIES})
+target_link_libraries(${EXE_NAME} ${LIBRARY_NAME}_static ${DEPENDENCIES} ${Multiverso_LIBRARY_STATIC})
 
 install(TARGETS ${EXE_NAME} DESTINATION bin)
 
