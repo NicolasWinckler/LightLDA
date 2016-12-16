@@ -37,6 +37,7 @@ set(INCLUDE_DIRECTORIES
 # Note: order of the dependencies matter for linking with static libs
 set(DEPENDENCIES
 	#${Multiverso_LIBRARIES}#zmq runtime error if shared and static
+	${Multiverso_LIBRARY_STATIC}
 	pthread
 	${ZMQ_LIBRARIES}
 	${MPI_CXX_LIBRARIES}
@@ -49,8 +50,8 @@ set(LIBRARY_NAME lightlda_core)
 include_directories(${INCLUDE_DIRECTORIES})
 Add_Library(${LIBRARY_NAME} SHARED ${SRCS})
 Add_Library(${LIBRARY_NAME}_static STATIC ${SRCS})
-target_link_libraries(${LIBRARY_NAME} ${DEPENDENCIES} ${Multiverso_LIBRARY_SHARED})
-target_link_libraries(${LIBRARY_NAME}_static ${DEPENDENCIES} ${Multiverso_LIBRARY_STATIC})
+target_link_libraries(${LIBRARY_NAME} ${DEPENDENCIES})
+target_link_libraries(${LIBRARY_NAME}_static ${DEPENDENCIES})
 
 
 install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
