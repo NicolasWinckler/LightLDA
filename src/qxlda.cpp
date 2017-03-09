@@ -41,10 +41,11 @@ namespace multiverso { namespace lightlda
                 config.num_servers = Config::num_servers;
                 config.num_aggregator = Config::num_aggregator;
                 config.server_endpoint_file = Config::server_file;
+                std::string outputdir = Config::output_dir;
 
                 Multiverso::Init(trainers, param_loader, config, &argc, &argv);
 
-                Log::ResetLogFile("LightLDA."
+                Log::ResetLogFile(outputdir+"LightLDA."
                                   + std::to_string(clock()) + ".log");
 
                 data_stream = CreateDataStream();
@@ -59,7 +60,7 @@ namespace multiverso { namespace lightlda
                 }
                 delete param_loader;
 
-                DumpDocTopic();
+                DumpDocTopic(outputdir);
 
                 delete data_stream;
                 delete barrier;
@@ -142,12 +143,14 @@ namespace multiverso { namespace lightlda
                 }
             }
 
-            static void DumpDocTopic()
+            static void DumpDocTopic(const std::string& outputDir="")
             {
                 Row<int32_t> doc_topic_counter(0, Format::Sparse, kMaxDocLength);
                 for (int32_t block = 0; block < Config::num_blocks; ++block)
                 {
-                    std::ofstream fout("doc_topic." + std::to_string(block));
+                    //todo : check existence of dir
+                    std::ofstream fout(outputDir + "/doc_topic." + std::to_string(block));
+                    //std::ofstream fout("doc_topic." + std::to_string(block));
                     data_stream->BeforeDataAccess();
                     DataBlock& data_block = data_stream->CurrDataBlock();
                     for (int i = 0; i < data_block.Size(); ++i)
@@ -245,7 +248,7 @@ int main(int argc, char** argv)
 {
     multiverso::lightlda::LightLDA::Run(argc, argv);
     std::cout << "Multiverso completed" << std::endl;
-    for (int i = 1; i < argc; i++) {
+    /*for (int i = 1; i < argc; i++) {
         if (i + 1 != argc)
             if (strcmp(argv[i], "-output_dir") == 0) {
                 std::string output_dir = argv[i + 1];
@@ -267,6 +270,6 @@ int main(int argc, char** argv)
                 boost::filesystem::copy_file(model2, to_model2);
                 boost::filesystem::copy_file(model3, to_model3);
             }
-    }
+    }// */
     return 0;
 }

@@ -58,6 +58,8 @@ namespace multiverso { namespace lightlda
         static float beta;
         /*! \brief path of input directory */
         static std::string input_dir;
+        /*! \brief path of output directory */
+        static std::string output_dir;
         /*! \brief option specify whether warm_start */
         static bool warm_start;
         /*! \brief inference mode */
