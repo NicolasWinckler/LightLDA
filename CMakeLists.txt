@@ -11,6 +11,8 @@ set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules" ${CMAKE_MODULE_PATH})
 find_package(MPI REQUIRED)
 find_package(ZeroMQ 4.1.3 REQUIRED)
 find_package(Multiverso REQUIRED)
+find_package(Boost 1.58	COMPONENTS
+            system filesystem)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -Wall -std=c++11 -O3")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-sign-compare -fno-omit-frame-pointer")
