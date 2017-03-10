@@ -45,7 +45,7 @@ namespace multiverso { namespace lightlda
 
                 Multiverso::Init(trainers, param_loader, config, &argc, &argv);
 
-                Log::ResetLogFile(outputdir+"LightLDA."
+                Log::ResetLogFile(outputdir+"/LightLDA."
                                   + std::to_string(clock()) + ".log");
 
                 data_stream = CreateDataStream();
@@ -237,39 +237,11 @@ namespace multiverso { namespace lightlda
     } // namespace lightlda
 } // namespace multiverso
 
-std::string getexepath() {
-    char result[PATH_MAX];
-    ssize_t count = readlink("/proc/self/exe", result, PATH_MAX);
-    return std::string(result, (count > 0) ? count : 0);
-}
-
 
 int main(int argc, char** argv)
 {
     multiverso::lightlda::LightLDA::Run(argc, argv);
     std::cout << "Multiverso completed" << std::endl;
-    /*for (int i = 1; i < argc; i++) {
-        if (i + 1 != argc)
-            if (strcmp(argv[i], "-output_dir") == 0) {
-                std::string output_dir = argv[i + 1];
-                std::string ex_path = getexepath();
-                ex_path.erase(ex_path.end() - 8, ex_path.end());
-                std::string model1 = ex_path + "server_0_table_0.model";
-                std::string model2 = ex_path + "server_0_table_1.model";
-                std::string model3 = ex_path + "doc_topic.0";
-                std::string to_model1 = output_dir + "server_0_table_0.model";
-                std::string to_model2 = output_dir + "server_0_table_1.model";
-                std::string to_model3 = output_dir + "doc_topic.0";
-                if (boost::filesystem::exists(to_model1))
-                    boost::filesystem::remove(to_model1);
-                if (boost::filesystem::exists(to_model2))
-                    boost::filesystem::remove(to_model2);
-                if (boost::filesystem::exists(to_model3))
-                    boost::filesystem::remove(to_model3);
-                boost::filesystem::copy_file(model1, to_model1);
-                boost::filesystem::copy_file(model2, to_model2);
-                boost::filesystem::copy_file(model3, to_model3);
-            }
-    }// */
+    
     return 0;
 }
