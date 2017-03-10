@@ -41,6 +41,7 @@ namespace multiverso { namespace lightlda
                 config.num_servers = Config::num_servers;
                 config.num_aggregator = Config::num_aggregator;
                 config.server_endpoint_file = Config::server_file;
+                config.output_dir = Config::output_dir;
                 std::string outputdir = Config::output_dir;
 
                 Multiverso::Init(trainers, param_loader, config, &argc, &argv);
