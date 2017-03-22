@@ -13,6 +13,7 @@ find_package(ZeroMQ 4.1.3 REQUIRED)
 find_package(Multiverso REQUIRED)
 find_package(Boost 1.58	COMPONENTS
             system filesystem)
+find_package(Mongo_CXX_Driver)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -Wall -std=c++11 -O3")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-sign-compare -fno-omit-frame-pointer")
@@ -22,4 +23,6 @@ add_subdirectory(src)
 add_subdirectory(inference)
 add_subdirectory(preprocess)
 
-
+if(Mongo_CXX_Driver_FOUND)
+    add_subdirectory(mongo-api)
+endif(Mongo_CXX_Driver_FOUND)
