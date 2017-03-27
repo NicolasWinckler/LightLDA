@@ -21,14 +21,26 @@
 #include <unistd.h>
 #include <boost/filesystem.hpp>
 
+
+
+#include "DBDataStream.hpp"
+#include "DataStreamTypes.h"
+
+
 namespace multiverso { namespace lightlda
     {
+        typedef DiskDataStream_impl<DataBlock> Disk_impl;
+        typedef MemoryDataStream_impl<DataBlock> Memo_impl;
+        typedef DBDataStream<Disk_impl> DataStream_disk;
+        typedef DBDataStream<Memo_impl> DataStream_memory;
+
+        template<typename datastream_type>
         class LightLDA
         {
         public:
             static void Run(int argc, char** argv)
             {
-                Config::Init(argc, argv);
+                //Config::Init(argc, argv);
 
                 AliasTable* alias_table = new AliasTable();
                 Barrier* barrier = new Barrier(Config::num_local_workers);
@@ -53,7 +65,10 @@ namespace multiverso { namespace lightlda
                 Log::ResetLogFile(outputdir+"/LightLDA."
                                   + std::to_string(clock()) + ".log");
 
-                data_stream = CreateDataStream();
+                //data_stream = CreateDataStream();
+
+                data_stream = new datastream_type(Config::num_blocks, Config::input_dir);
+
                 InitMultiverso();
                 Train();
 
@@ -232,20 +247,40 @@ namespace multiverso { namespace lightlda
             }
         private:
             /*! \brief training data access */
-            static IDataStream* data_stream;
+            static datastream_type* data_stream;
             /*! \brief training data meta information */
             static Meta meta;
         };
-        IDataStream* LightLDA::data_stream = nullptr;
+        datastream_type* LightLDA::data_stream = nullptr;
         Meta LightLDA::meta;
+
+
+
+namespace dev{
+int Run(int argc, char** argv)
+{
+    typedef DiskDataStream_impl<DataBlock> Disk_impl;
+    typedef MemoryDataStream_impl<DataBlock> Memo_impl;
+    typedef DBDataStream<Disk_impl> DataStream_disk;
+    typedef DBDataStream<Memo_impl> DataStream_memory;
+    if (Config::out_of_core && Config::num_blocks != 1)
+        LightLDA<DataStream_disk>::Run(argc, argv);
+    else
+        LightLDA<DataStream_memory>::Run(argc, argv);
+
+    return 0;
+}
+}//namespace dev
 
     } // namespace lightlda
 } // namespace multiverso
 
 
+
 int main(int argc, char** argv)
 {
-    multiverso::lightlda::LightLDA::Run(argc, argv);
+    multiverso::lightlda::Config::Init(argc, argv);
+    multiverso::lightlda::dev::Run(argc, argv);
     std::cout << "Multiverso completed" << std::endl;
 
     return 0;

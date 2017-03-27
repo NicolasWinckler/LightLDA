@@ -7,6 +7,7 @@
  */
 #ifndef LIGHTLDA_DBDATASTREAM_HPP
 #define LIGHTLDA_DBDATASTREAM_HPP
+
 namespace multiverso
 {
     namespace lightlda
@@ -15,6 +16,7 @@ namespace multiverso
         template <typename T>
         class DBDataStream : private T
         {
+                typedef DBDataStream<T> self_type;
                 typedef T impl_type;
             public:
                 /*! \brief Constructor with variadic types and arguments */
@@ -45,6 +47,12 @@ namespace multiverso
                 {
                     return impl_type::CurrDataBlock();
                 }
+            private:
+                // No copying allowed
+                DBDataStream(const DBDataStream&) {}
+                void operator=(const DBDataStream&) {}
+
+
         };
 
 
