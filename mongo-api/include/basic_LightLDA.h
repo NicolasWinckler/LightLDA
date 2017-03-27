@@ -10,7 +10,7 @@
 #include "trainer.h"
 #include "alias_table.h"
 //#include "data_stream.h"
-#include "data_block.h"
+//#include "data_block.h"
 #include "document.h"
 #include "meta.h"
 #include "util.h"
@@ -23,10 +23,6 @@
 #include <cstring>
 #include <limits.h>
 #include <unistd.h>
-#include <boost/filesystem.hpp>
-#include <type_traits>
-
-//#include "DataStreamTypes.h"
 
 
 namespace multiverso

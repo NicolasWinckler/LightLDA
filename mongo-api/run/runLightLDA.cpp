@@ -2,33 +2,9 @@
 // Created by nw on 27.03.17.
 //
 
-
-#include "common.h"
-#include "trainer.h"
-#include "alias_table.h"
-//#include "data_stream.h"
-#include "data_block.h"
-#include "document.h"
-#include "meta.h"
-#include "util.h"
-#include <vector>
-#include <iostream>
-#include <multiverso/barrier.h>
-#include <multiverso/log.h>
-#include <multiverso/row.h>
-#include <string>
-#include <cstring>
-#include <limits.h>
-#include <unistd.h>
-#include <boost/filesystem.hpp>
-#include <type_traits>
-
-
 #include "DataStreamTypes.h"
 #include "basic_LightLDA.h"
 #include "DataStreamInterface.h"
-
-
 
 namespace multiverso
 {
@@ -52,7 +28,7 @@ namespace multiverso
                 }
                 else
                 {
-
+                    basic_LightLDA<DefaultDataStream_db>::Run(argc, argv);
                 }
                 return 0;
             }
