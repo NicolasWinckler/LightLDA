@@ -251,15 +251,19 @@ namespace multiverso { namespace lightlda
             /*! \brief training data meta information */
             static Meta meta;
         };
-        datastream_type* LightLDA::data_stream = nullptr;
-        Meta LightLDA::meta;
+
+        template <typename datastream_type>
+        datastream_type* LightLDA<datastream_type>::data_stream = nullptr;
+
+        template <typename datastream_type>
+        Meta LightLDA<datastream_type>::meta;
 
 
 
 namespace dev{
 int Run(int argc, char** argv)
 {
-    typedef DiskDataStream_impl<DataBlock> Disk_impl;
+    typedef multiverso::lightlda::DiskDataStream_impl<DataBlock> Disk_impl;
     typedef MemoryDataStream_impl<DataBlock> Memo_impl;
     typedef DBDataStream<Disk_impl> DataStream_disk;
     typedef DBDataStream<Memo_impl> DataStream_memory;
