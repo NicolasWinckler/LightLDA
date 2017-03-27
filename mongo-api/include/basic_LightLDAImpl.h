@@ -1,63 +1,19 @@
 //
-// Created by nw on 21.03.17.
+// Created by nw on 27.03.17.
 //
 
-#include "common.h"
-#include "trainer.h"
-#include "alias_table.h"
-//#include "data_stream.h"
-#include "data_block.h"
-#include "document.h"
-#include "meta.h"
-#include "util.h"
-#include <vector>
-#include <iostream>
-#include <multiverso/barrier.h>
-#include <multiverso/log.h>
-#include <multiverso/row.h>
-#include <string>
-#include <cstring>
-#include <limits.h>
-#include <unistd.h>
-#include <boost/filesystem.hpp>
-#include <type_traits>
+#ifndef LIGHTLDA_BASIC_LIGHTLDAIMPL_H
+#define LIGHTLDA_BASIC_LIGHTLDAIMPL_H
 
-
-#include "DataStreamInterface.h"
-#include "DataStreamImpl.h"
-
-
-namespace multiverso { namespace lightlda
+namespace multiverso
+{
+    namespace lightlda
     {
-
-        template<typename T, typename U>
-        using enable_if_match = typename std::enable_if<std::is_same<T,U>::value,int>::type;
-
-        typedef DiskDataStream_impl<DataBlock> Disk_impl;
-        typedef MemoryDataStream_impl<DataBlock> Memo_impl;
-        typedef DataStreamInterface<Disk_impl> DataStream_disk;
-        typedef DataStreamInterface<Memo_impl> DataStream_memory;
-
-
-
-        template<typename datastream_type, enable_if_match<datastream_type,DataStream_memory> = 0>
-        datastream_type* CreateDataStream()
+        namespace dev
         {
-            return new datastream_type(Config::num_blocks, Config::input_dir);
-        }
-
-        template<typename datastream_type, enable_if_match<datastream_type,DataStream_disk> = 0>
-        datastream_type* CreateDataStream()
-        {
-            return new datastream_type(Config::num_blocks, Config::input_dir, Config::num_iterations);
-        }
-
-
-        template<typename datastream_type>
-        class LightLDA
-        {
-        public:
-            static void Run(int argc, char** argv)
+            // static public method member
+            template <typename datastream_type>
+            inline void basic_LightLDA<datastream_type>::Run(int argc, char** argv)
             {
                 //Config::Init(argc, argv);
 
@@ -105,8 +61,17 @@ namespace multiverso { namespace lightlda
                 delete barrier;
                 delete alias_table;
             }
-        private:
-            static void Train()
+
+            // static private data members
+            template <typename datastream_type>
+            datastream_type* basic_LightLDA<datastream_type>::data_stream = nullptr;
+
+            template <typename datastream_type>
+            Meta basic_LightLDA<datastream_type>::meta;
+
+            // static private method members
+            template <typename datastream_type>
+            void basic_LightLDA<datastream_type>::Train()
             {
                 Multiverso::BeginTrain();
                 for (int32_t i = 0; i < Config::num_iterations; ++i)
@@ -116,7 +81,7 @@ namespace multiverso { namespace lightlda
                     for (int32_t block = 0; block < Config::num_blocks; ++block)
                     {
                         data_stream->BeforeDataAccess();
-                        auto& data_block = data_stream->CurrDataBlock();
+                        DataBlock& data_block = data_stream->CurrDataBlock();
                         data_block.set_meta(&meta.local_vocab(block));
                         int32_t num_slice = meta.local_vocab(block).num_slice();
                         std::vector<LDADataBlock> data(num_slice);
@@ -138,7 +103,8 @@ namespace multiverso { namespace lightlda
                 Multiverso::EndTrain();
             }
 
-            static void InitMultiverso()
+            template <typename datastream_type>
+            void basic_LightLDA<datastream_type>::InitMultiverso()
             {
                 Multiverso::BeginConfig();
                 CreateTable();
@@ -147,13 +113,14 @@ namespace multiverso { namespace lightlda
                 Multiverso::EndConfig();
             }
 
-            static void Initialize()
+            template <typename datastream_type>
+            void basic_LightLDA<datastream_type>::Initialize()
             {
                 xorshift_rng rng;
                 for (int32_t block = 0; block < Config::num_blocks; ++block)
                 {
                     data_stream->BeforeDataAccess();
-                    auto& data_block = data_stream->CurrDataBlock();
+                    DataBlock& data_block = data_stream->CurrDataBlock();
                     int32_t num_slice = meta.local_vocab(block).num_slice();
                     for (int32_t slice = 0; slice < num_slice; ++slice)
                     {
@@ -182,7 +149,8 @@ namespace multiverso { namespace lightlda
                 }
             }
 
-            static void DumpDocTopic(const std::string& outputDir="")
+            template <typename datastream_type>
+            void basic_LightLDA<datastream_type>::DumpDocTopic(const std::string& outputDir)
             {
                 Row<int32_t> doc_topic_counter(0, Format::Sparse, kMaxDocLength);
                 for (int32_t block = 0; block < Config::num_blocks; ++block)
@@ -191,7 +159,7 @@ namespace multiverso { namespace lightlda
                     std::ofstream fout(outputDir + "/doc_topic." + std::to_string(block));
                     //std::ofstream fout("doc_topic." + std::to_string(block));
                     data_stream->BeforeDataAccess();
-                    auto& data_block = data_stream->CurrDataBlock();
+                    DataBlock& data_block = data_stream->CurrDataBlock();
                     for (int i = 0; i < data_block.Size(); ++i)
                     {
                         Document* doc = data_block.GetOneDoc(i);
@@ -210,7 +178,8 @@ namespace multiverso { namespace lightlda
                 }
             }
 
-            static void CreateTable()
+            template <typename datastream_type>
+            void basic_LightLDA<datastream_type>::CreateTable()
             {
                 int32_t num_vocabs = Config::num_vocabs;
                 int32_t num_topics = Config::num_topics;
@@ -230,7 +199,8 @@ namespace multiverso { namespace lightlda
                                      longlong_type, dense_format);
             }
 
-            static void ConfigTable()
+            template <typename datastream_type>
+            void basic_LightLDA<datastream_type>::ConfigTable()
             {
                 multiverso::Format dense_format = multiverso::Format::Dense;
                 multiverso::Format sparse_format = multiverso::Format::Sparse;
@@ -264,48 +234,11 @@ namespace multiverso { namespace lightlda
                     }
                 }
             }
-        private:
-            /*! \brief training data access */
-            static datastream_type* data_stream;
-            /*! \brief training data meta information */
-            static Meta meta;
-        };
-
-        // static class member
-        template <typename datastream_type>
-        datastream_type* LightLDA<datastream_type>::data_stream = nullptr;
-
-        template <typename datastream_type>
-        Meta LightLDA<datastream_type>::meta;
 
 
 
-        namespace dev
-        {
-            int Run(int argc, char** argv)
-            {
-                typedef DiskDataStream_impl<DataBlock> Disk_impl;
-                typedef MemoryDataStream_impl<DataBlock> Memo_impl;
-                typedef DataStreamInterface<Disk_impl> DataStream_disk;
-                typedef DataStreamInterface<Memo_impl> DataStream_memory;
-                if (Config::out_of_core && Config::num_blocks != 1)
-                    LightLDA<DataStream_disk>::Run(argc, argv);
-                else
-                    LightLDA<DataStream_memory>::Run(argc, argv);
-                return 0;
-            }
         } // namespace dev
     } // namespace lightlda
 } // namespace multiverso
 
-
-
-
-int main(int argc, char** argv)
-{
-    multiverso::lightlda::Config::Init(argc, argv);
-    multiverso::lightlda::dev::Run(argc, argv);
-    std::cout << "Multiverso completed" << std::endl;
-
-    return 0;
-}
+#endif //LIGHTLDA_BASIC_LIGHTLDAIMPL_H

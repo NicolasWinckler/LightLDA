@@ -66,6 +66,8 @@ namespace multiverso { namespace lightlda
         static bool inference;
         /*! \brief option specity whether use out of core computation */
         static bool out_of_core;
+        /*! \brief option specify whether use DB mode */
+        static bool db_mode;
         /*! \brief memory capacity settings, for memory pools */
         static int64_t data_capacity;
         static int64_t model_capacity;
