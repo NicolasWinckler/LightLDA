@@ -1,5 +1,19 @@
 
+set(HEADERS
+		basic_LightLDA.h
+		basic_LightLDAImpl.h
+		DataStreamInterface.h
+		DataStreamImpl.h
+		DataStreamTypes.h
+		MetaBase.h
+		MetaBaseImpl.h
+		Meta_file.h
+		Vocab.h
+		)
 
+set(SRCS
+		src/Vocab.cpp
+		)
 
 
 
@@ -23,8 +37,17 @@ set(DEPENDENCIES
     ${Mongo_CXX_Driver_LIBRARIES}
 )
 
+####### Generate lightlda_dbapi library
+set(LIBRARY_NAME lightlda_dbapi)
 
+include_directories(${INCLUDE_DIRECTORIES})
+#Add_Library(${LIBRARY_NAME} SHARED ${SRCS})
+Add_Library(${LIBRARY_NAME}_static STATIC ${SRCS})
+#target_link_libraries(${LIBRARY_NAME} ${DEPENDENCIES})
+target_link_libraries(${LIBRARY_NAME}_static ${DEPENDENCIES})
 
+install(TARGETS ${LIBRARY_NAME}_static DESTINATION lib)
+install(FILES ${HEADERS} DESTINATION include/lightlda)
 
 ####### Generate lightlda Executable
 set(SRCS run/mongoLightLda.cpp)
@@ -50,6 +73,7 @@ set(DEPENDENCIES
 		${ZMQ_LIBRARIES}
 		${MPI_CXX_LIBRARIES}
 		${Mongo_CXX_Driver_LIBRARIES}
+		lightlda_dbapi_static
 		)
 
 set(SRCS run/runLightLDA.cpp)

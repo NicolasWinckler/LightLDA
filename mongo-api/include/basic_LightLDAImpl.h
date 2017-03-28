@@ -12,8 +12,8 @@ namespace multiverso
         namespace dev
         {
             // static public method member
-            template <typename datastream_type>
-            inline void basic_LightLDA<datastream_type>::Run(int argc, char** argv)
+            template <typename datastream_type, typename meta_type>
+            void basic_LightLDA<datastream_type, meta_type>::Run(int argc, char** argv)
             {
                 //Config::Init(argc, argv);
 
@@ -63,15 +63,15 @@ namespace multiverso
             }
 
             // static private data members
-            template <typename datastream_type>
-            datastream_type* basic_LightLDA<datastream_type>::data_stream = nullptr;
+            template <typename datastream_type, typename meta_type>
+            datastream_type* basic_LightLDA<datastream_type, meta_type>::data_stream = nullptr;
 
-            template <typename datastream_type>
-            Meta basic_LightLDA<datastream_type>::meta;
+            template <typename datastream_type, typename meta_type>
+            meta_type basic_LightLDA<datastream_type, meta_type>::meta;
 
             // static private method members
-            template <typename datastream_type>
-            void basic_LightLDA<datastream_type>::Train()
+            template <typename datastream_type, typename meta_type>
+            void basic_LightLDA<datastream_type, meta_type>::Train()
             {
                 Multiverso::BeginTrain();
                 for (int32_t i = 0; i < Config::num_iterations; ++i)
@@ -103,8 +103,8 @@ namespace multiverso
                 Multiverso::EndTrain();
             }
 
-            template <typename datastream_type>
-            void basic_LightLDA<datastream_type>::InitMultiverso()
+            template <typename datastream_type, typename meta_type>
+            void basic_LightLDA<datastream_type, meta_type>::InitMultiverso()
             {
                 Multiverso::BeginConfig();
                 CreateTable();
@@ -113,8 +113,8 @@ namespace multiverso
                 Multiverso::EndConfig();
             }
 
-            template <typename datastream_type>
-            void basic_LightLDA<datastream_type>::Initialize()
+            template <typename datastream_type, typename meta_type>
+            void basic_LightLDA<datastream_type, meta_type>::Initialize()
             {
                 xorshift_rng rng;
                 for (int32_t block = 0; block < Config::num_blocks; ++block)
@@ -149,8 +149,8 @@ namespace multiverso
                 }
             }
 
-            template <typename datastream_type>
-            void basic_LightLDA<datastream_type>::DumpDocTopic(const std::string& outputDir)
+            template <typename datastream_type, typename meta_type>
+            void basic_LightLDA<datastream_type, meta_type>::DumpDocTopic(const std::string& outputDir)
             {
                 Row<int32_t> doc_topic_counter(0, Format::Sparse, kMaxDocLength);
                 for (int32_t block = 0; block < Config::num_blocks; ++block)
@@ -178,8 +178,8 @@ namespace multiverso
                 }
             }
 
-            template <typename datastream_type>
-            void basic_LightLDA<datastream_type>::CreateTable()
+            template <typename datastream_type, typename meta_type>
+            void basic_LightLDA<datastream_type, meta_type>::CreateTable()
             {
                 int32_t num_vocabs = Config::num_vocabs;
                 int32_t num_topics = Config::num_topics;
@@ -199,8 +199,8 @@ namespace multiverso
                                      longlong_type, dense_format);
             }
 
-            template <typename datastream_type>
-            void basic_LightLDA<datastream_type>::ConfigTable()
+            template <typename datastream_type, typename meta_type>
+            void basic_LightLDA<datastream_type, meta_type>::ConfigTable()
             {
                 multiverso::Format dense_format = multiverso::Format::Dense;
                 multiverso::Format sparse_format = multiverso::Format::Sparse;

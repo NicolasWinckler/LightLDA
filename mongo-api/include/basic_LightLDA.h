@@ -12,7 +12,7 @@
 //#include "data_stream.h"
 //#include "data_block.h"
 #include "document.h"
-#include "meta.h"
+//#include "meta.h"
 #include "util.h"
 #include <vector>
 #include <iostream>
@@ -29,15 +29,12 @@ namespace multiverso
 {
     namespace lightlda
     {
-
         namespace dev
         {
-            //template<typename datastream_type>
-            //datastream_type* CreateDataStream();
             template<typename datastream_type, typename U>
             datastream_type* CreateDataStream();
 
-            template<typename datastream_type>
+            template<typename datastream_type, typename meta_type>
             class basic_LightLDA
             {
             public:
@@ -58,7 +55,7 @@ namespace multiverso
                 /*! \brief training data access */
                 static datastream_type* data_stream;
                 /*! \brief training data meta information */
-                static Meta meta;
+                static meta_type meta;
             };
         } // namespace dev
     } // namespace lightlda

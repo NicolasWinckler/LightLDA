@@ -64,11 +64,13 @@ namespace multiverso
             };
 
             template<typename T>
-            DiskDataStream_impl<T>::DiskDataStream_impl(int32_t num_blocks,
-                                                        std::string data_path, int32_t num_iterations) :
-                    num_blocks_(num_blocks), data_path_(data_path),
-                    num_iterations_(num_iterations), working_(false) {
-                block_id_ = 0;
+            DiskDataStream_impl<T>::DiskDataStream_impl(int32_t num_blocks, std::string data_path, int32_t num_iterations) :
+                            block_id_(0),
+                            num_blocks_(num_blocks),
+                            num_iterations_(num_iterations),
+                            data_path_(data_path),
+                            working_(false)
+            {
                 buffer_0 = new block_type();
                 buffer_1 = new block_type();
                 data_buffer_ = new DataBuffer(1, buffer_0, buffer_1);
