@@ -34,6 +34,7 @@ namespace multiverso
             public:
                 Meta_file() : base_type(), fileNameWOExt_("vocab") {}
                 virtual ~Meta_file() {}
+
                 void SetFileNameWOExt(const std::string filename)
                 {
                     fileNameWOExt_=filename;

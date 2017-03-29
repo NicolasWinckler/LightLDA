@@ -20,7 +20,8 @@ namespace multiverso
              * \brief LocalVocab defines the meta information of a data block.
              *  It containes 1) which words occurs in this block, 2) slice information
              */
-            // template parameters for the CRTP class
+            // template parameters for the CRTP class (MetaBase + specific impl)
+            // TODO: find better compile time solution
             template <typename BaseClass, typename DerivedClass>
             class LocalVocab
             {
