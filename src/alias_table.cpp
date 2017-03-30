@@ -1,14 +1,5 @@
 #include "alias_table.h"
 
-#include "common.h"
-#include "model.h"
-#include "util.h"
-#include "meta.h"
-
-#include <multiverso/lock.h>
-#include <multiverso/log.h>
-#include <multiverso/row.h>
-#include <multiverso/row_iter.h>
 
 namespace multiverso { namespace lightlda
 {
@@ -42,7 +33,7 @@ namespace multiverso { namespace lightlda
     {
         table_index_ = table_index;
     }
-
+/*
     int32_t AliasTable::Build(int32_t word, ModelBase* model)
     {       
         if (q_w_proportion_ == nullptr)
@@ -110,7 +101,7 @@ namespace multiverso { namespace lightlda
         }
         return 0;
     }
-
+*/
     int32_t AliasTable::Propose(int32_t word, xorshift_rng& rng)
     {
         WordEntry& word_entry = table_index_->word_entry(word);

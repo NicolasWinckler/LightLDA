@@ -23,31 +23,31 @@ namespace multiverso
     namespace lightlda
     {
         namespace dev {
-            template <typename meta_type, typename psmodel_type>
-            std::mutex Trainer<meta_type,psmodel_type>::mutex_;
+            template <typename meta_type>
+            std::mutex Trainer<meta_type>::mutex_;
 
-            template <typename meta_type, typename psmodel_type>
-            double Trainer<meta_type,psmodel_type>::doc_llh_ = 0.0;
+            template <typename meta_type>
+            double Trainer<meta_type>::doc_llh_ = 0.0;
 
-            template <typename meta_type, typename psmodel_type>
-            double Trainer<meta_type,psmodel_type>::word_llh_ = 0.0;
+            template <typename meta_type>
+            double Trainer<meta_type>::word_llh_ = 0.0;
 
-            template <typename meta_type, typename psmodel_type>
-            Trainer<meta_type,psmodel_type>::Trainer(AliasTable *alias_table, Barrier *barrier, psmodel_type *meta) :
+            template <typename meta_type>
+            Trainer<meta_type>::Trainer(AliasTable *alias_table, Barrier *barrier, psmodel_type *meta) :
                     alias_(alias_table), barrier_(barrier), meta_(meta),
                     model_(nullptr) {
                 sampler_ = new LightDocSampler();
-                model_ = new psmodel_type(this);
+                model_ = new PSModel_type(this);
             }
 
-            template <typename meta_type, typename psmodel_type>
-            Trainer<meta_type,psmodel_type>::~Trainer() {
+            template <typename meta_type>
+            Trainer<meta_type>::~Trainer() {
                 delete sampler_;
                 delete model_;
             }
 
-            template <typename meta_type, typename psmodel_type>
-            void Trainer<meta_type,psmodel_type>::TrainIteration(DataBlockBase *data_block) {
+            template <typename meta_type>
+            void Trainer<meta_type>::TrainIteration(DataBlockBase *data_block) {
                 StopWatch watch;
                 watch.Start();
                 LDADataBlock *lda_data_block =
@@ -113,8 +113,8 @@ namespace multiverso
                 if (iter == Config::num_iterations - 1) alias_->Clear();
             }
 
-            template <typename meta_type, typename psmodel_type>
-            void Trainer<meta_type,psmodel_type>::Evaluate(LDADataBlock *lda_data_block) {
+            template <typename meta_type>
+            void Trainer<meta_type>::Evaluate(LDADataBlock *lda_data_block) {
                 double thread_doc = 0, thread_word = 0;
 
                 //DataBlock &data = lda_data_block->data();
@@ -166,8 +166,8 @@ namespace multiverso
             }
 
             // not used anywhere yet?
-            template <typename meta_type, typename psmodel_type>
-            void Trainer<meta_type,psmodel_type>::Dump(int32_t iter, LDADataBlock *lda_data_block)
+            template <typename meta_type>
+            void Trainer<meta_type>::Dump(int32_t iter, LDADataBlock *lda_data_block)
             {
                 //DataBlock &data = lda_data_block->data();
                 auto &data = lda_data_block->data();

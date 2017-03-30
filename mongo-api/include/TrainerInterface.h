@@ -23,14 +23,18 @@ namespace multiverso
             class AliasTable;
             class LDADataBlock;
             class LightDocSampler;
+            template<typename T>
+            class PSModel;
 
             /*! \brief Trainer is responsible for training a data block */
 
-            template <typename meta_type, typename psmodel_type>
+            template <typename meta_type>
             class Trainer : public TrainerBase
             {
+                typedef Trainer<meta_type> self_type;
+                typedef PSModel<self_type> PSModel_type;
             public:
-                Trainer(AliasTable* alias, Barrier* barrier, psmodel_type* meta);
+                Trainer(AliasTable* alias, Barrier* barrier, meta_type* meta);
                 ~Trainer();
                 /*!
                  * \brief Defines Trainning method for a data_block in one iteration
@@ -55,7 +59,7 @@ namespace multiverso
                 /*! \brief meta information */
                 meta_type* meta_;
                 /*! \brief model acceccor */
-                psmodel_type * model_;
+                PSModel_type* model_;
                 static std::mutex mutex_;
 
                 static double doc_llh_;
