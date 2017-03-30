@@ -25,6 +25,7 @@
 #include <unistd.h>
 
 
+#include "TrainerInterface.h"
 namespace multiverso
 {
     namespace lightlda
@@ -34,7 +35,7 @@ namespace multiverso
             template<typename datastream_type, typename U>
             datastream_type* CreateDataStream();
 
-            template<typename datastream_type, typename meta_type, typename model_type>
+            template<typename datastream_type, typename meta_type>
             class basic_LightLDA
             {
             public:

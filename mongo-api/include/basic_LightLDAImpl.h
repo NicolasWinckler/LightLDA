@@ -16,6 +16,7 @@ namespace multiverso
             void basic_LightLDA<datastream_type, meta_type>::Run(int argc, char** argv)
             {
                 //Config::Init(argc, argv);
+                typedef Trainer<meta_type> Trainer_type;
 
                 AliasTable* alias_table = new AliasTable();
                 Barrier* barrier = new Barrier(Config::num_local_workers);
@@ -23,7 +24,7 @@ namespace multiverso
                 std::vector<TrainerBase*> trainers;
                 for (int32_t i = 0; i < Config::num_local_workers; ++i)
                 {
-                    Trainer* trainer = new Trainer(alias_table, barrier, &meta);
+                    Trainer_type* trainer = new Trainer_type(alias_table, barrier, &meta);
                     trainers.push_back(trainer);
                 }
 

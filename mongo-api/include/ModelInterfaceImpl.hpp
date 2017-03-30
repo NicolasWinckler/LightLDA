@@ -11,6 +11,7 @@ namespace multiverso
     {
         namespace dev
         {
+            /*
             template <typename meta_type, typename loader_type>
             LocalModel<meta_type,loader_type>::LocalModel(Meta * meta) : word_topic_table_(nullptr),
                                                   summary_table_(nullptr), meta_(meta)
@@ -56,31 +57,32 @@ namespace multiverso
             {
                 return *(static_cast<Row<int64_t>*>(summary_table_->GetRow(0)));
             }
+             */
 
             ////////////////////////////////////////////////////////////////////////////////
 
             template <typename trainer_type>
             Row<int32_t>& PSModel<trainer_type>::GetWordTopicRow(integer_t word_id)
             {
-                return trainer_->GetRow<int32_t>(kWordTopicTable, word_id);
+                return trainer_->template GetRow<int32_t>(kWordTopicTable, word_id);
             }
 
             template <typename trainer_type>
             Row<int64_t>& PSModel<trainer_type>::GetSummaryRow()
             {
-                return trainer_->GetRow<int64_t>(kSummaryRow, 0);
+                return trainer_->template GetRow<int64_t>(kSummaryRow, 0);
             }
 
             template <typename trainer_type>
             void PSModel<trainer_type>::AddWordTopicRow(integer_t word_id, integer_t topic_id, int32_t delta)
             {
-                trainer_->Add<int32_t>(kWordTopicTable, word_id, topic_id, delta);
+                trainer_->template Add<int32_t>(kWordTopicTable, word_id, topic_id, delta);
             }
 
             template <typename trainer_type>
             void PSModel<trainer_type>::AddSummaryRow(integer_t topic_id, int64_t delta)
             {
-                trainer_->Add<int64_t>(kSummaryRow, 0, topic_id, delta);
+                trainer_->template Add<int64_t>(kSummaryRow, 0, topic_id, delta);
             }
 
         } // namespace dev

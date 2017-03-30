@@ -14,15 +14,17 @@
 #include <multiverso/multiverso.h>
 #include <multiverso/barrier.h>
 
+#include "ModelInterface.h"
 namespace multiverso
 {
     namespace lightlda
     {
+        class AliasTable;
+        class LDADataBlock;
+        class LightDocSampler;
         namespace dev
         {
-            class AliasTable;
-            class LDADataBlock;
-            class LightDocSampler;
+
             template<typename T>
             class PSModel;
 
@@ -83,5 +85,6 @@ namespace multiverso
     } // namespace lightlda
 } // namespace multiverso
 
+#include "TrainerInterfaceImpl.h"
 
 #endif //LIGHTLDA_TRAINERINTERFACE_H

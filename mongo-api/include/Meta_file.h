@@ -15,8 +15,9 @@ namespace multiverso
         {
             class Meta_file : public MetaBase<Meta_file>
             {
-                typedef MetaBase<Meta_file> base_type;
+                //typedef MetaBase<Meta_file> base_type;
                 // functions members
+            public:
                 using base_type::tf;
                 using base_type::local_tf;
                 using base_type::local_vocab;
@@ -31,7 +32,7 @@ namespace multiverso
                 using base_type::local_tf_;
                 using base_type::alias_index_;
 
-            public:
+
                 Meta_file() : base_type(), fileNameWOExt_("vocab") {}
                 virtual ~Meta_file() {}
 
@@ -49,7 +50,7 @@ namespace multiverso
                     local_vocabs_.resize(Config::num_blocks);
                     for (int32_t i = 0; i < Config::num_blocks; ++i)
                     {
-                        LocalVocab& local_vocab = local_vocabs_[i];
+                        LocalVocab<Meta_file>& local_vocab = local_vocabs_[i];
 
                         std::string file_name = Config::input_dir +
                                                 "/" + fileNameWOExt_ +

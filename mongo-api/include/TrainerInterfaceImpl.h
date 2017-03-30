@@ -33,11 +33,12 @@ namespace multiverso
             double Trainer<meta_type>::word_llh_ = 0.0;
 
             template <typename meta_type>
-            Trainer<meta_type>::Trainer(AliasTable *alias_table, Barrier *barrier, psmodel_type *meta) :
+            Trainer<meta_type>::Trainer(AliasTable *alias_table, Barrier *barrier, meta_type *meta) :
                     alias_(alias_table), barrier_(barrier), meta_(meta),
                     model_(nullptr) {
                 sampler_ = new LightDocSampler();
-                model_ = new PSModel_type(this);
+
+                model_ = new Trainer<meta_type>::PSModel_type(this);
             }
 
             template <typename meta_type>

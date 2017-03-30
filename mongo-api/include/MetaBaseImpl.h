@@ -18,11 +18,11 @@ namespace multiverso
         namespace dev
         {
             template<typename T>
-            MetaBase::MetaBase() {
+            MetaBase<T>::MetaBase() {
             }
 
             template<typename T>
-            MetaBase::~MetaBase()
+            MetaBase<T>::~MetaBase()
             {
                 for (int32_t i = 0; i < alias_index_.size(); ++i)
                 {
@@ -48,7 +48,7 @@ namespace multiverso
 
                 // Schedule for each data block
                 for (int32_t i = 0; i < Config::num_blocks; ++i) {
-                    LocalVocab_t &local_vocab = local_vocabs_[i];
+                    LocalVocab<T> &local_vocab = local_vocabs_[i];
                     int32_t *vocabs = local_vocab.vocabs_;
                     local_vocab.slice_index_.push_back(0);
 
@@ -104,7 +104,7 @@ namespace multiverso
                 // Schedule for each data block
                 for (int32_t i = 0; i < Config::num_blocks; ++i)
                 {
-                    LocalVocab_t &local_vocab = local_vocabs_[i];
+                    LocalVocab<T> &local_vocab = local_vocabs_[i];
                     int32_t *vocabs = local_vocab.vocabs_;
                     local_vocab.slice_index_.push_back(0);
                     local_vocab.slice_index_.push_back(local_vocab.size_);
@@ -135,7 +135,7 @@ namespace multiverso
                 // for each block
                 for (int32_t i = 0; i < Config::num_blocks; ++i)
                 {
-                    const LocalVocab_t &vocab = local_vocab(i);
+                    const LocalVocab<T> &vocab = local_vocab(i);
                     alias_index_[i].resize(vocab.num_slice());
                     // for each slice
                     for (int32_t j = 0; j < vocab.num_slice(); ++j)

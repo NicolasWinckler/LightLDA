@@ -5,6 +5,7 @@
 #include "DataStreamTypes.h"
 #include "basic_LightLDA.h"
 #include "DataStreamInterface.h"
+#include "Meta_file.h"
 
 namespace multiverso
 {
@@ -19,16 +20,16 @@ namespace multiverso
                 {
                     if (Config::out_of_core && Config::num_blocks != 1)
                     {
-                        basic_LightLDA<DefaultDataStream_disk>::Run(argc, argv);
+                        basic_LightLDA<DefaultDataStream_disk,Meta_file>::Run(argc, argv);
                     }
                     else
                     {
-                        basic_LightLDA<DefaultDataStream_memory>::Run(argc, argv);
+                        basic_LightLDA<DefaultDataStream_memory,Meta_file>::Run(argc, argv);
                     }
                 }
                 else
                 {
-                    basic_LightLDA<DefaultDataStream_db>::Run(argc, argv);
+                    basic_LightLDA<DefaultDataStream_db,Meta_file>::Run(argc, argv);
                 }
                 return 0;
             }

@@ -32,12 +32,12 @@ namespace multiverso
 
                 Row<int32_t>& GetWordTopicRow(integer_t word_id)
                 {
-                    model_type::GetWordTopicRow(word_id);
+                    return model_type::GetWordTopicRow(word_id);
                 }
 
                 Row<int64_t>& GetSummaryRow()
                 {
-                    model_type::GetSummaryRow();
+                    return model_type::GetSummaryRow();
                 }
 
                 void AddWordTopicRow(integer_t word_id, integer_t topic_id, int32_t delta)
@@ -52,12 +52,14 @@ namespace multiverso
             };
 
             /*! \brief model based on local buffer */
+/*
             template <typename meta_type, typename loader_type>
             class LocalModel
             {
             public:
                 explicit LocalModel(meta_type * meta);
 
+                template <typename... Args>
                 void Init(Args&&... args)
                 {
                     loader_type::Init(std::forward<Args>(args)...);
@@ -96,7 +98,7 @@ namespace multiverso
                 void operator=(const LocalModel&) = delete;
 
             };
-
+*/
 
             /*! \brief model based on parameter server */
 

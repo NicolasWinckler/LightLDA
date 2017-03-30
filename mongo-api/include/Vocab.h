@@ -22,14 +22,14 @@ namespace multiverso
              */
             // template parameters for the CRTP class (MetaBase + specific impl)
             // TODO: find better compile time solution
-            template <typename BaseClass, typename DerivedClass>
+            template <typename DerivedClass>
             class LocalVocab
             {
             public:
-                static_assert(std::is_base_of<BaseClass,DerivedClass>::value,"BaseClass must be the base class of DerivedClass");
-                friend BaseClass;// template parameters
+                static_assert(std::is_base_of<typename DerivedClass::base_type,DerivedClass>::value,"BaseClass must be the base class of DerivedClass");
+                //friend BaseClass;// template parameters
                 friend DerivedClass;// template parameters
-
+                friend typename DerivedClass::base_type;
                 LocalVocab()
                         : num_slices_(0),
                           own_memory_(false),

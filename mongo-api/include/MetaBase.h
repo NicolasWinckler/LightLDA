@@ -34,8 +34,8 @@ namespace multiverso
             public:
                 typedef MetaBase<Derived> base_type;
                 typedef Derived derived_type;
-            protected:
-                typedef LocalVocab<base_type,derived_type> LocalVocab_t;
+            //protected:
+                //typedef LocalVocab<derived_type> LocalVocab_t;
                 // protected constructor to enforce derivation
                 MetaBase();
 
@@ -63,7 +63,7 @@ namespace multiverso
                 }
 
                 /*! \brief Get the local vocab based on block id */
-                const LocalVocab_t& local_vocab(int32_t id) const
+                const LocalVocab<derived_type>& local_vocab(int32_t id) const
                 {
                     return local_vocabs_[id];
                 }
@@ -85,7 +85,7 @@ namespace multiverso
 
             protected:
                 /*! \brief meta information for all data block */
-                std::vector<LocalVocab_t> local_vocabs_;
+                std::vector<LocalVocab<derived_type>> local_vocabs_;
                 /*! \breif tf information for all word in the dataset */
                 std::vector<int32_t> tf_;
                 /*! \brief local tf information for all word in this machine */
