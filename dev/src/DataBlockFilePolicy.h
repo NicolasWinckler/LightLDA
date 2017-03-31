@@ -4,7 +4,7 @@
 
 #ifndef LIGHTLDA_DATABLOCKFILEPOLICY_H
 #define LIGHTLDA_DATABLOCKFILEPOLICY_H
-#include "data_block.h"
+
 #include "document.h"
 #include "common.h"
 #include "DataBlockInterface.h"
@@ -18,7 +18,7 @@
 #include <stdio.h>
 #endif
 
-
+#include <iostream>
 
 namespace
 {
@@ -48,7 +48,7 @@ namespace multiverso
 
         class DataBlockFilePolicy
         {
-            friend class DataBlockInterface<DataBlockFilePolicy>;
+            //friend class DataBlockInterface<DataBlockFilePolicy>;
 
         public:
             DataBlockFilePolicy() :
@@ -97,7 +97,8 @@ namespace multiverso
                                 sizeof(int64_t)* (DataBlockInterface_->num_document_ + 1));
 
                 DataBlockInterface_->corpus_size_ = DataBlockInterface_->offset_buffer_[DataBlockInterface_->num_document_];
-
+                std::cout << "------------------------------->  num_document_ =" << DataBlockInterface_->num_document_ << std::endl;
+                std::cout << "------------------------------->  offset_buffer_[num_document_] =" << DataBlockInterface_->offset_buffer_[DataBlockInterface_->num_document_] << std::endl;
                 if (DataBlockInterface_->corpus_size_ > DataBlockInterface_->memory_block_size_)
                 {
                     Log::Fatal("Rank %d: corpus_size_ > memory_block_size when reading file %s\n",
