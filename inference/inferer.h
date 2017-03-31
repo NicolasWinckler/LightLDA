@@ -9,7 +9,7 @@
 #include <multiverso/multiverso.h>
 #include <multiverso/log.h>
 #include <multiverso/barrier.h>
-
+#include "meta.h"
 namespace multiverso 
 { 
     class Barrier;
@@ -19,7 +19,7 @@ namespace lightlda
     class AliasTable;
     class LDADataBlock;
     class LightDocSampler;
-    class Meta;
+    //class Meta;
     class LocalModel;
     class IDataStream;
     

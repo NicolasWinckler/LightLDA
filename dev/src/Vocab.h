@@ -19,8 +19,8 @@ namespace multiverso { namespace lightlda
     class LocalVocab
     {
     public:
-        friend class Meta;
-        friend class Meta::base_type;
+        //friend class Meta;
+        //friend class Meta::base_type;
         LocalVocab();
         ~LocalVocab();
         /*! \brief Get the last word of current slice */
@@ -31,7 +31,7 @@ namespace multiverso { namespace lightlda
         const int* begin(int32_t slice) const;
         /*! \brief Get the pointer to last word + 1 in this slice */
         const int32_t* end(int32_t slice) const;
-    private:
+    //private:
         int32_t num_slices_;
         int32_t* vocabs_;
         int32_t size_;

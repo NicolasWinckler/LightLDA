@@ -12,7 +12,6 @@
 #include <fstream>
 #include <sstream>
 
-#include "meta.h"
 #include "trainer.h"
 
 #include <multiverso/log.h>

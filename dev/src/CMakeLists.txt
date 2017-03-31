@@ -17,7 +17,7 @@ set(HEADERS
 set(SRCS 
 	alias_table.cpp
 	common.cpp
-	data_block.cpp
+	#data_block.cpp
 	data_stream.cpp
 	document.cpp
 	eval.cpp

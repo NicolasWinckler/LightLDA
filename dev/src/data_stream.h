@@ -6,9 +6,11 @@
 #ifndef LIGHTLDA_DATA_STREAM_H_
 #define LIGHTLDA_DATA_STREAM_H_
 
+#include "data_block.h"
+
 namespace multiverso { namespace lightlda 
 {
-    class DataBlock;
+    //class DataBlock;
     /*! \brief interface of data stream */
     class IDataStream
     {

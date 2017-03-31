@@ -13,7 +13,7 @@
 #include "Vocab.h"
 namespace multiverso { namespace lightlda
 {
-    typedef dev::Meta_file Meta;
+    typedef class dev::Meta_file Meta;
     
 
 } // namespace lightlda
