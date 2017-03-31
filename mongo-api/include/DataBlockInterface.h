@@ -15,6 +15,8 @@
 #include <string>
 #include <vector>
 
+#include "Vocab.h"
+
 namespace multiverso
 {
     namespace lightlda

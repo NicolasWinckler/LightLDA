@@ -19,10 +19,10 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -Wall -std=c++11 -O3")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-sign-compare -fno-omit-frame-pointer")
 
 
-add_subdirectory(src)
+add_subdirectory(dev/src)
 add_subdirectory(inference)
 add_subdirectory(preprocess)
 
 if(Mongo_CXX_Driver_FOUND)
-    add_subdirectory(mongo-api)
+    #add_subdirectory(mongo-api)
 endif(Mongo_CXX_Driver_FOUND)
