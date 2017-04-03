@@ -97,8 +97,10 @@ namespace multiverso
                                 sizeof(int64_t)* (DataBlockInterface_->num_document_ + 1));
 
                 DataBlockInterface_->corpus_size_ = DataBlockInterface_->offset_buffer_[DataBlockInterface_->num_document_];
+                std::cout << "------------------------------->  max_num_document_ =" << DataBlockInterface_->max_num_document_ << std::endl;
                 std::cout << "------------------------------->  num_document_ =" << DataBlockInterface_->num_document_ << std::endl;
                 std::cout << "------------------------------->  offset_buffer_[num_document_] =" << DataBlockInterface_->offset_buffer_[DataBlockInterface_->num_document_] << std::endl;
+                
                 if (DataBlockInterface_->corpus_size_ > DataBlockInterface_->memory_block_size_)
                 {
                     Log::Fatal("Rank %d: corpus_size_ > memory_block_size when reading file %s\n",

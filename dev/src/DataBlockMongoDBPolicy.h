@@ -33,6 +33,11 @@ namespace multiverso
 {
     namespace lightlda
     {
+        struct Token 
+        {
+            int32_t word_id;
+            int32_t topic_id;
+        };
 
         class DataBlockMongoDBPolicy
         {
@@ -41,13 +46,14 @@ namespace multiverso
 
         public:
             DataBlockMongoDBPolicy() :
+                    doc_buf_(nullptr),
                     DataBlockInterface_(nullptr),
                     file_name_(),
                     has_read_(false)
             {
-
+                int32_t *doc_buf = new int32_t[kMaxDocLength * 2 + 1];
             }
-            ~DataBlockMongoDBPolicy(){}
+            virtual ~DataBlockMongoDBPolicy(){}
 
 
 
@@ -80,7 +86,7 @@ namespace multiverso
 
                 auto trainingCursor = trainingDataCollection.find(filter_builder.view(), opts);
 
-                static_assert( std::is_same< DocNumber, decltype(trainingDataCollection.count()) >, "DocNumber (aka int64_t) returned type of ");
+                static_assert( std::is_same< DocNumber, decltype(trainingDataCollection.count({})) >, "types must be the same");
 
                 DataBlockInterface_->num_document_ = trainingDataCollection.count({});
 
@@ -91,30 +97,75 @@ namespace multiverso
                                Multiverso::ProcessRank(), MongoDBName_.c_str(), MongoCollectionName_.c_str());
                 }
 
+                int doc_buf_idx=0;
+                int j=0;
                 // TODO: change BSON format to be consistent with block.0, block.1 etc..
-                // loop over <user,[items]> pairs
+                // loop over <doc,[words]> pairs
                 for (auto &&doc : trainingCursor)
                 {
+
+
+
+
+
+
+
+
+
+
+                    ////////////////////////////////////////////////
                     //assume that user are unique
                     std::vector<int> userRow(itemSize);
                     bsoncxx::document::element ele_id;
 
-                    if ((ele_id = doc["visiteditems"]))
+                    
+                    if ((ele_id = doc["words"]))
                     {
-                        bsoncxx::array::view visitedItemsArray{ele_id.get_array().value};
+                        bsoncxx::array::view observedWordArray{ele_id.get_array().value};
                         // loop over visited items (array)
 
-                        for(const auto& visitedItem : visitedItemsArray)
+                        int doc_token_count = 0;
+                        std::vector<Token> doc_tokens;
+
+                        for(const auto& observedWord : observedWordArray)
                         {
-                            std::string itemId = mongodbutil::GetElementAsString(visitedItem);
-                            if (itemId != "")
-                                userRow[m_ProductIdsMap.at(itemId)]++;
+                            if (doc_token_count >= kMaxDocLength) break;
+                            int32_t word_id = observedWord.get_int32().value;
+                            doc_tokens.push_back({ word_id, 0 });
+
+                            //std::string itemId = mongodbutil::GetElementAsString(visitedItem);
+                            //if (itemId != "")
+                            //    userRow[m_ProductIdsMap.at(itemId)]++;
+
                         }// end loop over visited items
 
-                        prefMatrix.push_back(userRow);
+                        std::sort(doc_tokens.begin(), doc_tokens.end(), [](const Token& token1, const Token& token2) 
+                        {
+                            return token1.word_id < token2.word_id;
+                        });
+                        
+                        DataBlockInterface_->documents_buffer_[doc_buf_idx++] = 0;
+                        for (auto& token : doc_tokens)
+                        {
+                            DataBlockInterface_->documents_buffer_[doc_buf_idx++] = token.word_id;
+                            DataBlockInterface_->documents_buffer_[doc_buf_idx++] = token.topic_id;
+                        }
+                        
+                        //DataBlockInterface_->offset_buffer_[j + 1] = DataBlockInterface_->offset_buffer_[j] + doc_buf_idx;
+                        DataBlockInterface_->offset_buffer_[j + 1] = doc_buf_idx;
                     }
+                    j++;
+                }// end loop over doc
 
-                }// end loop over user
+                //TODO: the check below is useless yet, fix this
+                DataBlockInterface_->corpus_size_ = doc_buf_idx;
+                if (DataBlockInterface_->corpus_size_ > DataBlockInterface_->memory_block_size_)
+                {
+                    Log::Fatal("Rank %d: corpus_size_ > memory_block_size when reading file %s\n",
+                               Multiverso::ProcessRank(), file_name_.c_str());
+                }
+                DataBlockInterface_->GenerateDocuments();
+                has_read_ = true;
 
             }
 
@@ -137,23 +188,23 @@ namespace multiverso
 //                               Multiverso::ProcessRank(), file_name_.c_str());
 //                }
 
-                block_file.read(reinterpret_cast<char*>(DataBlockInterface_->offset_buffer_),
-                                sizeof(int64_t)* (DataBlockInterface_->num_document_ + 1));
+                //block_file.read(reinterpret_cast<char*>(DataBlockInterface_->offset_buffer_),
+                //                sizeof(int64_t)* (DataBlockInterface_->num_document_ + 1));
 
-                DataBlockInterface_->corpus_size_ = DataBlockInterface_->offset_buffer_[DataBlockInterface_->num_document_];
+                //DataBlockInterface_->corpus_size_ = DataBlockInterface_->offset_buffer_[DataBlockInterface_->num_document_];
 
-                if (DataBlockInterface_->corpus_size_ > DataBlockInterface_->memory_block_size_)
-                {
-                    Log::Fatal("Rank %d: corpus_size_ > memory_block_size when reading file %s\n",
-                               Multiverso::ProcessRank(), file_name_.c_str());
-                }
+                //if (DataBlockInterface_->corpus_size_ > DataBlockInterface_->memory_block_size_)
+                //{
+                //    Log::Fatal("Rank %d: corpus_size_ > memory_block_size when reading file %s\n",
+                //               Multiverso::ProcessRank(), file_name_.c_str());
+                //}
 
-                block_file.read(reinterpret_cast<char*>(DataBlockInterface_->documents_buffer_),
-                                sizeof(int32_t)* DataBlockInterface_->corpus_size_);
-                block_file.close();
+                //block_file.read(reinterpret_cast<char*>(DataBlockInterface_->documents_buffer_),
+                //                sizeof(int32_t)* DataBlockInterface_->corpus_size_);
+                //block_file.close();
 
-                DataBlockInterface_->GenerateDocuments();
-                has_read_ = true;
+                //DataBlockInterface_->GenerateDocuments();
+                //has_read_ = true;
             }
 
             void Write()
@@ -182,11 +233,13 @@ namespace multiverso
             //////////////////////////
 
         private:
+            int32_t *doc_buff_;
             DataBlockInterface<DataBlockMongoDBPolicy>* DataBlockInterface_;
             std::string MongoDBName_;
             std::string MongoCollectionName_;
             std::unique_ptr<mongocxx::pool> ClientToTrainingData_;
             bool has_read_;
+            const int32_t kMaxDocLength = 8192;
         };
     } // namespace lightlda
 } // namespace multiverso
