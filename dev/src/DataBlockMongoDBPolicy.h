@@ -74,7 +74,7 @@ namespace multiverso
             }
 
 
-            void ReadTrainingData2()
+            void ReadTrainingData()
             {
 
                 auto conn = ClientToTrainingData_->acquire();
@@ -103,21 +103,7 @@ namespace multiverso
                 // loop over <doc,[words]> pairs
                 for (auto &&doc : trainingCursor)
                 {
-
-
-
-
-
-
-
-
-
-
-                    ////////////////////////////////////////////////
-                    //assume that user are unique
-                    std::vector<int> userRow(itemSize);
                     bsoncxx::document::element ele_id;
-
                     
                     if ((ele_id = doc["words"]))
                     {
@@ -133,11 +119,7 @@ namespace multiverso
                             int32_t word_id = observedWord.get_int32().value;
                             doc_tokens.push_back({ word_id, 0 });
 
-                            //std::string itemId = mongodbutil::GetElementAsString(visitedItem);
-                            //if (itemId != "")
-                            //    userRow[m_ProductIdsMap.at(itemId)]++;
-
-                        }// end loop over visited items
+                        }// end loop over words
 
                         std::sort(doc_tokens.begin(), doc_tokens.end(), [](const Token& token1, const Token& token2) 
                         {
@@ -172,7 +154,7 @@ namespace multiverso
 
 
             //////////////////////////
-            void ReadTrainingData()
+            void ReadTrainingDataFILE()
             {
 
 //                std::ifstream block_file(file_name_, std::ios::in | std::ios::binary);
