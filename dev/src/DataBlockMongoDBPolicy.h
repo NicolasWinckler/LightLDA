@@ -85,17 +85,20 @@ namespace multiverso
                 {
                     int32_t* docBuffer_ptr = nullptr;
                     int64_t offsetStart = DataBlockInterface_->offset_buffer_[docIdx];
-                    int64_t offsetEnd = DataBlockInterface_->offset_buffer_[docIdx];
+                    int64_t offsetEnd = DataBlockInterface_->offset_buffer_[docIdx + 1];
 
                     docBuffer_ptr = DataBlockInterface_->documents_buffer_ + offsetStart;
-                    for(int64_t tokenPosition(offsetStart); tokenPosition<offsetEnd; tokenPosition++)
+                    for(int64_t tokenIdx(offsetStart); tokenIdx < offsetEnd; tokenIdx++)
                     {
+                        int32_t wordId = *(docBuffer_ptr + 1 + tokenIdx * 2);
+                        int32_t topicId = *(docBuffer_ptr + 2 + tokenIdx * 2);
 
+                        WriteTrainingData(docIdx, wordId, topicId);
                     }
                     //WriteTrainingData(int64_t docId, int32_t wordId, int32_t topicId)
-                    WriteTrainingData(docIdx,2,3);
+                    
                 }
-
+                has_read_ = false;
             }
 
 
@@ -248,6 +251,7 @@ namespace multiverso
                 bsoncxx::document::value fUpdate = doc << bsoncxx::builder::stream::finalize;
                 trainingDataCollection.update_one(filter.view(), std::move(fUpdate), updateOpts);
                 //LOG(DEBUG) << "upserted user " << userId;
+                has_read_ = false;
 
             }
 
