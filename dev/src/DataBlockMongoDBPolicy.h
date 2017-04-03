@@ -46,16 +46,19 @@ namespace multiverso
 
         public:
             DataBlockMongoDBPolicy() :
-                    doc_buf_(nullptr),
+                    //doc_buf_(nullptr),
                     DataBlockInterface_(nullptr),
-                    file_name_(),
-                    has_read_(false)
+                    MongoDBName_(),
+                    MongoCollectionName_(),
+                    has_read_(false),
+                    kMaxDocLength(8192)
             {
                 int32_t *doc_buf = new int32_t[kMaxDocLength * 2 + 1];
             }
             virtual ~DataBlockMongoDBPolicy(){}
 
 
+            void SetFileName(const std::string& filename){/*dummy-temporary function to match current API */}
 
             void Init(DataBlockInterface<DataBlockMongoDBPolicy>* interface)
             {
@@ -68,9 +71,31 @@ namespace multiverso
                 return has_read_;
             }
 
+            /* read from source=MongoDB and store to buffer*/
             void Read()
             {
                 ReadTrainingData();
+            }
+
+            /* write from buffer to destination=MongoDB*/
+            void Write()
+            {
+                //WriteTrainingData();
+                for(int64_t docIdx(0); docIdx<DataBlockInterface_->num_document_; docIdx++)
+                {
+                    int32_t* docBuffer_ptr = nullptr;
+                    int64_t offsetStart = DataBlockInterface_->offset_buffer_[docIdx];
+                    int64_t offsetEnd = DataBlockInterface_->offset_buffer_[docIdx];
+
+                    docBuffer_ptr = DataBlockInterface_->documents_buffer_ + offsetStart;
+                    for(int64_t tokenPosition(offsetStart); tokenPosition<offsetEnd; tokenPosition++)
+                    {
+
+                    }
+                    //WriteTrainingData(int64_t docId, int32_t wordId, int32_t topicId)
+                    WriteTrainingData(docIdx,2,3);
+                }
+
             }
 
 
@@ -86,7 +111,7 @@ namespace multiverso
 
                 auto trainingCursor = trainingDataCollection.find(filter_builder.view(), opts);
 
-                static_assert( std::is_same< DocNumber, decltype(trainingDataCollection.count({})) >, "types must be the same");
+                static_assert( std::is_same< DocNumber, decltype(trainingDataCollection.count({})) >::value, "types must be the same");
 
                 DataBlockInterface_->num_document_ = trainingDataCollection.count({});
 
@@ -105,7 +130,7 @@ namespace multiverso
                 {
                     bsoncxx::document::element ele_id;
                     
-                    if ((ele_id = doc["words"]))
+                    if ((ele_id = doc["tokenIds"]))
                     {
                         bsoncxx::array::view observedWordArray{ele_id.get_array().value};
                         // loop over visited items (array)
@@ -143,8 +168,8 @@ namespace multiverso
                 DataBlockInterface_->corpus_size_ = doc_buf_idx;
                 if (DataBlockInterface_->corpus_size_ > DataBlockInterface_->memory_block_size_)
                 {
-                    Log::Fatal("Rank %d: corpus_size_ > memory_block_size when reading file %s\n",
-                               Multiverso::ProcessRank(), file_name_.c_str());
+                    Log::Fatal("Rank %d: corpus_size_ > memory_block_size when reading file \n",
+                               Multiverso::ProcessRank());
                 }
                 DataBlockInterface_->GenerateDocuments();
                 has_read_ = true;
@@ -189,39 +214,76 @@ namespace multiverso
                 //has_read_ = true;
             }
 
-            void Write()
+
+            void WriteTrainingData(int64_t docId, int32_t wordId, int32_t topicId)
             {
-                std::string temp_file = file_name_ + ".temp";
+                auto conn = ClientToTrainingData_->acquire();
+                //auto recProcCollection = (*conn)[s_RecProcDB][s_RecProcTrainCollection];
+                auto trainingDataCollection = (*conn)[MongoDBName_][MongoCollectionName_];
 
-                std::ofstream block_file(temp_file, std::ios::out | std::ios::binary);
+                // upsert options
+                mongocxx::options::update updateOpts;
+                updateOpts.upsert(true);
 
-                if (!block_file.good())
-                {
-                    Log::Fatal("Failed to open file %s\n", temp_file.c_str());
-                }
+                // filter
+                auto filter = bsoncxx::builder::stream::document{}
+                        << "docId" << docId
+                        << bsoncxx::builder::stream::finalize;
 
-                block_file.write(reinterpret_cast<char*>(&DataBlockInterface_->num_document_),
-                                 sizeof(DocNumber));
-                block_file.write(reinterpret_cast<char*>(DataBlockInterface_->offset_buffer_),
-                                 sizeof(int64_t)* (DataBlockInterface_->num_document_ + 1));
-                block_file.write(reinterpret_cast<char*>(DataBlockInterface_->documents_buffer_),
-                                 sizeof(int32_t)* DataBlockInterface_->corpus_size_);
-                block_file.flush();
-                block_file.close();
+                //open doc
+                bsoncxx::builder::stream::document doc{};
 
-                AtomicMoveFileExA(temp_file, file_name_);
-                has_read_ = false;
+                doc << "$push"  << bsoncxx::builder::stream::open_document
+                    << "tokenIds" << bsoncxx::builder::stream::open_document
+                    << "$each"  << bsoncxx::builder::stream::open_array
+                        << bsoncxx::builder::stream::open_document
+                        << "wordId" << wordId
+                        << "topicId" << topicId
+                        << bsoncxx::builder::stream::close_document
+                    << bsoncxx::builder::stream::close_array << "$slice" << -kMaxDocLength
+                    << bsoncxx::builder::stream::close_document
+                    << bsoncxx::builder::stream::close_document;
+
+                // update
+                bsoncxx::document::value fUpdate = doc << bsoncxx::builder::stream::finalize;
+                trainingDataCollection.update_one(filter.view(), std::move(fUpdate), updateOpts);
+                //LOG(DEBUG) << "upserted user " << userId;
+
+            }
+
+            void WriteTrainingDataFile()
+            {
+//                std::string temp_file = file_name_ + ".temp";
+//
+//                std::ofstream block_file(temp_file, std::ios::out | std::ios::binary);
+//
+//                if (!block_file.good())
+//                {
+//                    Log::Fatal("Failed to open file %s\n", temp_file.c_str());
+//                }
+//
+//                block_file.write(reinterpret_cast<char*>(&DataBlockInterface_->num_document_),
+//                                 sizeof(DocNumber));
+//                block_file.write(reinterpret_cast<char*>(DataBlockInterface_->offset_buffer_),
+//                                 sizeof(int64_t)* (DataBlockInterface_->num_document_ + 1));
+//                block_file.write(reinterpret_cast<char*>(DataBlockInterface_->documents_buffer_),
+//                                 sizeof(int32_t)* DataBlockInterface_->corpus_size_);
+//                block_file.flush();
+//                block_file.close();
+//
+//                AtomicMoveFileExA(temp_file, file_name_);
+//                has_read_ = false;
             }
             //////////////////////////
 
         private:
-            int32_t *doc_buff_;
+            //int32_t *doc_buf_;
             DataBlockInterface<DataBlockMongoDBPolicy>* DataBlockInterface_;
             std::string MongoDBName_;
             std::string MongoCollectionName_;
             std::unique_ptr<mongocxx::pool> ClientToTrainingData_;
             bool has_read_;
-            const int32_t kMaxDocLength = 8192;
+            const int32_t kMaxDocLength;
         };
     } // namespace lightlda
 } // namespace multiverso

@@ -29,7 +29,7 @@ set(SRCS
 	)
 
 
-set(INCLUDE_DIRECTORIES 
+set(INCLUDE_DIRECTORIES
 	${ZMQ_INCLUDE_DIR}
 	${MPI_CXX_INCLUDE_PATH}
 	${CMAKE_CURRENT_SOURCE_DIR}
@@ -45,6 +45,11 @@ set(DEPENDENCIES
 	${ZMQ_LIBRARIES}
 	${MPI_CXX_LIBRARIES}
 )
+
+if(Mongo_CXX_Driver_FOUND)
+	set(INCLUDE_DIRECTORIES ${Mongo_CXX_Driver_INCLUDE_DIR} ${INCLUDE_DIRECTORIES})
+	set(DEPENDENCIES ${Mongo_CXX_Driver_LIBRARIES} ${DEPENDENCIES})
+endif()
 
 ####### Generate BaseLightLDA library
 set(LIBRARY_NAME lightlda_core)
@@ -66,7 +71,7 @@ install(FILES ${HEADERS} DESTINATION include/lightlda)
 set(SRCS lightlda.cpp)
 set(EXE_NAME lightlda)
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+include_directories(${INCLUDE_DIRECTORIES})
 Add_Executable(${EXE_NAME} ${SRCS})
 
 #target_link_libraries(${EXE_NAME} ${LIBRARY_NAME} ${DEPENDENCIES})
@@ -80,7 +85,7 @@ install(TARGETS ${EXE_NAME} DESTINATION bin)
 set(SRCS qxlda.cpp)
 set(EXE_NAME qxlda)
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+include_directories(${INCLUDE_DIRECTORIES})
 Add_Executable(${EXE_NAME} ${SRCS})
 
 #target_link_libraries(${EXE_NAME} ${LIBRARY_NAME} ${DEPENDENCIES})

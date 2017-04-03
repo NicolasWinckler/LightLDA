@@ -16,6 +16,7 @@
 
 #include "DataBlockInterface.h"
 #include "DataBlockFilePolicy.h"
+#include "DataBlockMongoDBPolicy.h"
 
 namespace multiverso { namespace lightlda
 {
@@ -26,7 +27,9 @@ namespace multiverso { namespace lightlda
      *  it correspond to a data block file in disk. 
      */
 
-        typedef DataBlockInterface<DataBlockFilePolicy> DataBlock;
+        //typedef DataBlockInterface<DataBlockFilePolicy> DataBlock;
+        typedef DataBlockInterface<DataBlockMongoDBPolicy> DataBlock;
+
 //    class DataBlock
 //    {
 //    public:

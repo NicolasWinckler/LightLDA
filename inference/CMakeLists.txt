@@ -19,6 +19,11 @@ set(DEPENDENCIES
 	${MPI_CXX_LIBRARIES}
 )
 
+if(Mongo_CXX_Driver_FOUND)
+	set(INCLUDE_DIRECTORIES ${Mongo_CXX_Driver_INCLUDE_DIR} ${INCLUDE_DIRECTORIES})
+	set(DEPENDENCIES ${Mongo_CXX_Driver_LIBRARIES} ${DEPENDENCIES})
+endif()
+
 
 ####### Generate library
 set(LIBRARY_NAME lightlda_infer)
