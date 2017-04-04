@@ -11,8 +11,7 @@
 #include <multiverso/log.h>
 
 
-
-
+#include <memory>
 
 #include <bsoncxx/json.hpp>
 
@@ -42,6 +41,7 @@ namespace multiverso
         class DataBlockMongoDBPolicy
         {
 
+            typedef std::unique_ptr<mongocxx::pool> MongoPool_ptr;
             //friend class DataBlockInterface<DataBlockMongoDBPolicy>;
 
         public:
@@ -50,10 +50,11 @@ namespace multiverso
                     DataBlockInterface_(nullptr),
                     MongoDBName_(),
                     MongoCollectionName_(),
+                    MongoUri_(),
                     has_read_(false),
-                    kMaxDocLength(8192)
+                    kMaxDocLength(8192),
+                    ClientToTrainingData_(nullptr)
             {
-                int32_t *doc_buf = new int32_t[kMaxDocLength * 2 + 1];
             }
             virtual ~DataBlockMongoDBPolicy(){}
 
@@ -63,6 +64,18 @@ namespace multiverso
             void Init(DataBlockInterface<DataBlockMongoDBPolicy>* interface)
             {
                 DataBlockInterface_ = interface;
+                // some checks...
+                if(MongoUri_.empty())
+                    Log::Fatal("Mongo uri is not defined, program will now exit \n");
+
+                if(MongoDBName_.empty())
+                    Log::Fatal("Mongo DataBase Name is not defined, program will now exit \n");
+
+                if(MongoCollectionName_.empty())
+                    Log::Fatal("Mongo Collection Name is not defined, program will now exit \n");
+
+                if(!ClientToTrainingData_)
+                    Log::Fatal("Mongo pool is not not valid, program will now exit \n");
             }
 
 
@@ -101,6 +114,15 @@ namespace multiverso
                 has_read_ = false;
             }
 
+
+            void SetMongoParameters(const std::string& uri, const std::string& DBName, const std::string& collectionName)
+            {
+                MongoUri_ = uri;
+                MongoDBName_ = DBName;
+                MongoCollectionName_ = collectionName;
+
+                ClientToTrainingData_ = std::move(MongoPool_ptr(new mongocxx::pool(mongocxx::uri{uri})));
+            }
 
             void ReadTrainingData()
             {
@@ -141,11 +163,29 @@ namespace multiverso
                         int doc_token_count = 0;
                         std::vector<Token> doc_tokens;
 
+                        //bsoncxx::document::view tokenView;
                         for(const auto& observedWord : observedWordArray)
                         {
                             if (doc_token_count >= kMaxDocLength) break;
-                            int32_t word_id = observedWord.get_int32().value;
-                            doc_tokens.push_back({ word_id, 0 });
+                            bsoncxx::document::view tokenView = observedWord.get_document().view();
+
+                            bsoncxx::document::element word_ele{tokenView["wordId"]};
+                            bsoncxx::document::element topic_ele{tokenView["topicId"]};
+
+                            int32_t wordId = -1;
+                            int32_t topicId = -1;
+
+                            if (word_ele && word_ele.type() == bsoncxx::type::k_int32)
+                                wordId = observedWord.get_int32().value;
+
+                            if (topic_ele && topic_ele.type() == bsoncxx::type::k_int32)
+                                topicId = observedWord.get_int32().value;
+
+                            if(wordId > 0 && topicId > 0)
+                                doc_tokens.push_back({ wordId, topicId });
+                            else
+                                Log::Fatal("[ERROR] word_id or/and topic_id not found in MongoDB, and is/are required for the LightLDA document buffer.");
+
 
                         }// end loop over words
 
@@ -285,9 +325,10 @@ namespace multiverso
             DataBlockInterface<DataBlockMongoDBPolicy>* DataBlockInterface_;
             std::string MongoDBName_;
             std::string MongoCollectionName_;
-            std::unique_ptr<mongocxx::pool> ClientToTrainingData_;
+            std::string MongoUri_;
             bool has_read_;
             const int32_t kMaxDocLength;
+            std::unique_ptr<mongocxx::pool> ClientToTrainingData_;
         };
     } // namespace lightlda
 } // namespace multiverso

@@ -10,10 +10,12 @@
 #include <vector>
 #include <cstdint>
 #include "Meta_file.h"
+#include "MetaMongoDB.h"
 #include "Vocab.h"
 namespace multiverso { namespace lightlda
 {
-    typedef class dev::Meta_file Meta;
+    //typedef class dev::Meta_file Meta;
+    typedef class dev::MetaMongoDB Meta;
     
 
 } // namespace lightlda
