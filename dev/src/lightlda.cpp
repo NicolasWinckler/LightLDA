@@ -12,6 +12,19 @@
 #include <multiverso/log.h>
 #include <multiverso/row.h>
 
+
+#include <bsoncxx/json.hpp>
+
+#include <mongocxx/client.hpp>
+#include <mongocxx/cursor.hpp>
+#include <mongocxx/instance.hpp>
+#include <mongocxx/uri.hpp>
+#include <mongocxx/options/find.hpp>
+#include <mongocxx/pool.hpp>
+
+#include <bsoncxx/builder/stream/document.hpp>
+#include <bsoncxx/builder/stream/array.hpp>
+
 namespace multiverso { namespace lightlda
 {     
     class LightLDA
@@ -139,7 +152,72 @@ namespace multiverso { namespace lightlda
 
         static void DumpDocTopic()
         {
+            DumpDocTopicToMongoDB();
+
+
+        }
+
+        static void DumpDocTopicToMongoDB()
+        {
+            mongocxx::pool ClientToModel(mongocxx::uri{mongo_uri_});
+            auto conn = ClientToModel.acquire();
+            auto doc_topicCollection = (*conn)["Test"]["docTopicModel"];
+            mongocxx::options::update updateOpts;
+            updateOpts.upsert(true);
+            
             Row<int32_t> doc_topic_counter(0, Format::Sparse, kMaxDocLength); 
+            for (int32_t block = 0; block < Config::num_blocks; ++block)
+            {
+
+                //std::ofstream fout("doc_topic." + std::to_string(block));
+                data_stream->BeforeDataAccess();
+                DataBlock& data_block = data_stream->CurrDataBlock();
+                for (int doc_i = 0; doc_i < data_block.Size(); ++doc_i)
+                {
+                    auto filter = bsoncxx::builder::stream::document{}
+                            << "block_idx" << block
+                            << "doc_topic.idx" << doc_i
+                            << bsoncxx::builder::stream::finalize;
+                    Document* doc = data_block.GetOneDoc(doc_i);
+                    doc_topic_counter.Clear();
+                    doc->GetDocTopicVector(doc_topic_counter);
+                    //fout << doc_i << " ";  // doc id
+                    Row<int32_t>::iterator iter = doc_topic_counter.Iterator();
+                    bsoncxx::builder::stream::document ucpt_doc{};//ucpt = unormalized cpt
+
+                    ucpt_doc << "block_idx" << block
+                             << "doc_topic"
+                             << bsoncxx::builder::stream::open_document
+                                    << "idx" <<  doc_i
+                                    << "ucpt" << bsoncxx::builder::stream::open_array;
+                             /*<< bsoncxx::builder::stream::open_document
+                                << "ucpt" << bsoncxx::builder::stream::open_array;
+
+                              */
+
+                    while (iter.HasNext())
+                    {
+                        ucpt_doc  << bsoncxx::builder::stream::open_document
+                                << "topic_idx" << iter.Key()
+                                << "topic_count" << iter.Value()
+                                 << bsoncxx::builder::stream::close_document;
+                        iter.Next();
+                    }
+                    /*ucpt_doc << bsoncxx::builder::stream::close_array
+                             << bsoncxx::builder::stream::close_document;
+                             */
+                    //fout << std::endl;
+                    ucpt_doc << bsoncxx::builder::stream::close_array << bsoncxx::builder::stream::close_document;
+                    bsoncxx::document::value fUpdate = ucpt_doc << bsoncxx::builder::stream::finalize;
+                    doc_topicCollection.update_one(filter.view(), std::move(fUpdate), updateOpts);
+                }
+                data_stream->EndDataAccess();
+            }
+        }
+
+        static void DumpDocTopicToFile()
+        {
+            Row<int32_t> doc_topic_counter(0, Format::Sparse, kMaxDocLength);
             for (int32_t block = 0; block < Config::num_blocks; ++block)
             {
                 std::ofstream fout("doc_topic." + std::to_string(block));
@@ -222,9 +300,11 @@ namespace multiverso { namespace lightlda
         static IDataStream* data_stream;
         /*! \brief training data meta information */
         static Meta meta;
+        static std::string mongo_uri_;
     };
     IDataStream* LightLDA::data_stream = nullptr;
     Meta LightLDA::meta;
+    std::string LightLDA::mongo_uri_ = "to be initialized";
 
 } // namespace lightlda
 } // namespace multiverso

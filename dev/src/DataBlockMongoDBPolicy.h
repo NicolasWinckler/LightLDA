@@ -276,6 +276,8 @@ namespace multiverso
                 //open doc
                 bsoncxx::builder::stream::document doc{};
 
+                // code below ok when creating the collection for the first time,
+                // TODO: not good when updating --> fix this for the update
                 doc << "$push"  << bsoncxx::builder::stream::open_document
                     << "tokenIds" << bsoncxx::builder::stream::open_document
                     << "$each"  << bsoncxx::builder::stream::open_array
