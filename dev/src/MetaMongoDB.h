@@ -37,12 +37,6 @@ namespace multiverso
                 typedef std::unique_ptr<mongocxx::pool> MongoPool_ptr;
             public:
 
-                enum class Vocabulary
-                {
-                    kId = 0,
-                    kGlobal_tf = 1,
-                    kLocal_tf = 2
-                };
                 using base_type::tf;
                 using base_type::local_tf;
                 using base_type::local_vocab;
@@ -112,7 +106,7 @@ namespace multiverso
                     bsoncxx::builder::stream::document filter_builder;
                     mongocxx::options::find opts{};
                     opts.no_cursor_timeout(true);
-                    auto vocabCursor = vocabDataCollection.find(filter_builder.view(), opts);
+                    //auto vocabCursor = vocabDataCollection.find(filter_builder.view(), opts);
 
 
 
@@ -120,9 +114,19 @@ namespace multiverso
 
 
                     int32_t block_i = 0;
-                    for (auto &&vocabBlock : vocabCursor)
-                    //for (int32_t i = 0; i < Config::num_blocks; ++i)
+                    //for (auto &&vocabBlock : vocabCursor)
+                    for (int32_t block_i = 0; block_i < Config::num_blocks; ++block_i)
                     {
+
+                        std::string blockIdx("vocab");
+                        blockIdx+= std::to_string(block_i);
+
+                        auto vocabCursor = vocabDataCollection.find(
+                                bsoncxx::builder::stream::document{} 
+                                    << "block_idx" << block_i 
+                                    << bsoncxx::builder::stream::finalize, 
+                                opts);
+
                         auto& local_vocab = local_vocabs_[block_i];
                         local_vocab.size_ = vocabDataCollection.count({});
 
@@ -133,53 +137,74 @@ namespace multiverso
                         local_vocab.own_memory_ = true;
 
 
-                        std::string blockIdx("vocab.");
-                        blockIdx+= std::to_string(block_i);
 
                         int32_t vocDBIdx = 0;
-                        //for (auto &&vocabBlock : vocabCursor)
+                        for (auto &&vocabBlock : vocabCursor)
                         {
-                            bsoncxx::document::element voc_ele;
-                            //if element "vocab.block_i" found
-                            if((voc_ele = vocabBlock[blockIdx.c_str()] ))
+                            bsoncxx::document::element vocId_ele;
+                            if((vocId_ele = vocabBlock["vocab.id"] ))
                             {
-                                bsoncxx::document::element vocabItem_ele;
-                                std::string vocab_key("vocabIdx.");
-                                vocab_key += std::to_string(vocDBIdx);
-
-                                // if element "vocabIdx.vocDBIdx"
-                                if(vocabItem_ele = voc_ele[vocab_key.c_str()])
+                                vocDBIdx = 0;
+                                bsoncxx::array::view vocabId_array{vocId_ele.get_array().value};
+                                for(const auto& vocabId : vocabId_array)
                                 {
-                                    bsoncxx::array::view observedVoc{vocabItem_ele.get_array().value};
-                                    if(observedVoc.length()!=3)
-                                        Log::Fatal("size of Vocab array is different than 3, program will now exit \n");
-                                    int32_t voc_id = observedVoc[Vocabulary::kId];
-                                    int32_t glob_tf = observedVoc[Vocabulary::kGlobal_tf];
-                                    int32_t loc_tf = observedVoc[Vocabulary::kLocal_tf];
-
-                                    local_vocab.vocabs_[vocDBIdx] = voc_id;
-                                    tf[vocDBIdx] = glob_tf;
-                                    local_tf[vocDBIdx] = loc_tf;
-
-
-                                    for (int32_t v = 0; v < local_vocab.size_; ++v)
+                                    //bsoncxx::document::element 
+                                    if (vocabId && vocabId.type() == bsoncxx::type::k_int32)
                                     {
-                                        if (tf_buffer[v] > tf_[local_vocab.vocabs_[v]])
-                                        {
-                                            tf_[local_vocab.vocabs_[v]] = tf_buffer[v];
-                                        }
-                                        if (local_tf_buffer[v] > local_tf_[local_vocab.vocabs_[v]])
-                                        {
-                                            local_tf_[local_vocab.vocabs_[v]] = local_tf_buffer[v];
-                                        }
+                                        int32_t voc_id = vocabId.get_int32().value;
+                                        local_vocab.vocabs_[vocDBIdx];
+                                        vocDBIdx++;
                                     }
 
                                 }
-
                             }
 
-                            vocDBIdx++;
+                            bsoncxx::document::element globtf_ele;
+                            if((globtf_ele = vocabBlock["vocab.global_tf"] ))
+                            {
+                                vocDBIdx = 0;
+                                bsoncxx::array::view globtf_array{globtf_ele.get_array().value};
+                                for(const auto& globtf : globtf_array)
+                                {
+                                    if (globtf && globtf.type() == bsoncxx::type::k_int32)
+                                    {
+                                        int32_t glob_tf = globtf.get_int32().value;
+                                        tf_buffer[vocDBIdx] = glob_tf;
+                                        vocDBIdx++;
+                                    }
+                                }
+                            }
+
+                            bsoncxx::document::element loctf_ele;
+                            if((loctf_ele = vocabBlock["vocab.loacal_tf"] ))
+                            {
+                                vocDBIdx = 0;
+                                bsoncxx::array::view loctf_array{loctf_ele.get_array().value};
+                                for(const auto& loctf : loctf_array)
+                                {
+                                    if (loctf && loctf.type() == bsoncxx::type::k_int32)
+                                    {
+                                        int32_t loc_tf = loctf.get_int32().value;
+                                        local_tf_buffer[vocDBIdx] = loc_tf;
+                                        vocDBIdx++;
+                                    }
+
+                                }
+                            }
                         }
+
+                        for (int32_t v = 0; v < local_vocab.size_; ++v)
+                        {
+                            if (tf_buffer[v] > tf_[local_vocab.vocabs_[v]])
+                            {
+                                tf_[local_vocab.vocabs_[v]] = tf_buffer[v];
+                            }
+                            if (local_tf_buffer[v] > local_tf_[local_vocab.vocabs_[v]])
+                            {
+                                local_tf_[local_vocab.vocabs_[v]] = local_tf_buffer[v];
+                            }
+                        }
+
                         block_i++;
                     }
                     delete[] local_tf_buffer;
