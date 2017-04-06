@@ -185,29 +185,22 @@ namespace multiverso { namespace lightlda
                     Row<int32_t>::iterator iter = doc_topic_counter.Iterator();
                     bsoncxx::builder::stream::document ucpt_doc{};//ucpt = unormalized cpt
 
-                    ucpt_doc << "block_idx" << block
+                    auto subdocstream = ucpt_doc << "block_idx" << block
                              << "doc_topic"
                              << bsoncxx::builder::stream::open_document
                                     << "idx" <<  doc_i
                                     << "ucpt" << bsoncxx::builder::stream::open_array;
-                             /*<< bsoncxx::builder::stream::open_document
-                                << "ucpt" << bsoncxx::builder::stream::open_array;
-
-                              */
 
                     while (iter.HasNext())
                     {
-                        ucpt_doc  << bsoncxx::builder::stream::open_document
-                                << "topic_idx" << iter.Key()
-                                << "topic_count" << iter.Value()
-                                 << bsoncxx::builder::stream::close_document;
+                        subdocstream
+                                << bsoncxx::builder::stream::open_document
+                                    << "topic_idx" << iter.Key()
+                                    << "topic_count" << iter.Value()
+                                << bsoncxx::builder::stream::close_document;
                         iter.Next();
                     }
-                    /*ucpt_doc << bsoncxx::builder::stream::close_array
-                             << bsoncxx::builder::stream::close_document;
-                             */
-                    //fout << std::endl;
-                    ucpt_doc << bsoncxx::builder::stream::close_array << bsoncxx::builder::stream::close_document;
+                    subdocstream << bsoncxx::builder::stream::close_array << bsoncxx::builder::stream::close_document;
                     bsoncxx::document::value fUpdate = ucpt_doc << bsoncxx::builder::stream::finalize;
                     doc_topicCollection.update_one(filter.view(), std::move(fUpdate), updateOpts);
                 }
