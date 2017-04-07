@@ -32,15 +32,18 @@
 #include <bsoncxx/builder/stream/document.hpp>
 #include <bsoncxx/builder/stream/array.hpp>
 
+#include "MongoHelper.h"
+
+
 class InitMongoDB
 {
     typedef std::unique_ptr<mongocxx::pool> MongoPool_ptr;
 public:
     InitMongoDB() :
-            TrainingDataDBName_("Test"),
+            TrainingDataDBName_("mydb"),
             TrainingDataCollectionName_(),
             TrainingDataMongoUri_(),
-            VocabDBName_("Test"),
+            VocabDBName_("mydb"),
             VocabCollectionName_(),
             VocabMongoUri_(),
             kMaxDocLength(8192),
@@ -163,7 +166,9 @@ public:
 
 
 
-    void WriteVocab(int32_t block_idx, int32_t wordId, int32_t global_tf, int32_t local_tf)
+    void WriteVocab(int32_t block_idx,
+                    std::unordered_map<int32_t ,int32_t >& global_tf,
+                    std::unordered_map<int32_t ,int32_t >& local_tf)
     {
 
         std::cout << "[in obj] ok1\n";
@@ -179,45 +184,51 @@ public:
                 << "block_idx" << block_idx
                 << bsoncxx::builder::stream::finalize;
 
-        //open doc
-        bsoncxx::builder::stream::document doc{};
 
-        // code below ok when creating the collection for the first time,
-        doc
-            << "block_idx" << block_idx
-            << "vocab" << bsoncxx::builder::stream::open_document
-            << "$push"  << bsoncxx::builder::stream::open_document
-            << "id" << bsoncxx::builder::stream::open_document
-            << "$each"  << bsoncxx::builder::stream::open_array
-            <<  wordId
-            << bsoncxx::builder::stream::close_array << "$slice" << -kMaxVocab
-            << bsoncxx::builder::stream::close_document
-            << bsoncxx::builder::stream::close_document;
+        auto localtf_arr = builder::stream::array{};
+        auto globaltf_arr = builder::stream::array{};
+        auto id_arr = builder::stream::array{};
 
 
-        doc << "$push"  << bsoncxx::builder::stream::open_document
-            << "global_tf" << bsoncxx::builder::stream::open_document
-            << "$each"  << bsoncxx::builder::stream::open_array
-            << global_tf
-            << bsoncxx::builder::stream::close_array << "$slice" << -kMaxVocab
-            << bsoncxx::builder::stream::close_document
-            << bsoncxx::builder::stream::close_document;
-
-        doc << "$push"  << bsoncxx::builder::stream::open_document
-            << "local_tf" << bsoncxx::builder::stream::open_document
-            << "$each"  << bsoncxx::builder::stream::open_array
-            << local_tf
-            << bsoncxx::builder::stream::close_array << "$slice" << -kMaxVocab
-            << bsoncxx::builder::stream::close_document
-            << bsoncxx::builder::stream::close_document
-            << bsoncxx::builder::stream::close_document;
-
-        // update
         std::cout << "[in obj] ok2\n";
-        bsoncxx::document::value fUpdate = doc << bsoncxx::builder::stream::finalize;
-        vocabCollection.update_one(filter.view(), std::move(fUpdate), updateOpts);
-        //LOG(DEBUG) << "upserted user " << userId;
-        std::cout << "[in obj] ok3\n";
+        localtf_arr << tf_map_convertor(&local_tf,&local_tf);
+        std::cout << "[in obj] localtf_arr ok\n";
+        globaltf_arr << tf_map_convertor(&global_tf,&local_tf);
+        std::cout << "[in obj] globaltf_arr ok\n";
+        id_arr << tf_map_convertor<mongoHelper::MapKeys>(&local_tf,&local_tf);
+        std::cout << "[in obj] id_arr ok\n";
+        //////
+
+        bsoncxx::builder::stream::document tempdoc{};
+
+        auto finalDoc = tempdoc << "$set" << bsoncxx::builder::stream::open_document
+                                << "block_idx" << block_idx
+                                /* open vocab obj */
+                                << "vocab" << bsoncxx::builder::stream::open_document
+                                //<< bsoncxx::builder::concatenate(doc.view())
+                                /* id array */
+                                << "id"
+                                << bsoncxx::builder::stream::open_array
+                                << bsoncxx::builder::concatenate(id_arr.view())
+                                << bsoncxx::builder::stream::close_array
+                                /*global_tf array */
+                                << "global_tf"
+                                << bsoncxx::builder::stream::open_array
+                                << bsoncxx::builder::concatenate(globaltf_arr.view())
+                                << bsoncxx::builder::stream::close_array
+                                /*local_tf array */
+                                << "local_tf"
+                                << bsoncxx::builder::stream::open_array
+                                << bsoncxx::builder::concatenate(localtf_arr.view())
+                                << bsoncxx::builder::stream::close_array
+                                /* close vocab obj */
+                                << bsoncxx::builder::stream::close_document
+                                /* close $set */
+                                << bsoncxx::builder::stream::close_document
+                                /* gives a view */
+                                << bsoncxx::builder::stream::finalize;
+
+        vocabCollection.update_one(filter.view(), std::move(finalDoc), updateOpts);
 
     }
 

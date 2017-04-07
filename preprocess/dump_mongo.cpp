@@ -407,6 +407,7 @@ int main(int argc, char* argv[])
     int32_t output_offset = atoi(argv[4]);
     std::string uri(argv[5]);
 
+    uri="mongodb://qxadmin:qx16admin@127.0.0.1/test?authSource=users";
     std::cout << "ok1\n";
 
     InitMongoDB database;
@@ -559,6 +560,7 @@ int main(int argc, char* argv[])
 
     int32_t non_zero_count = 0;
     // write vocab
+    std::cout << "word_num 1) = " << word_num << "\n";
     for (int i = 0; i < word_num; ++i)
     {
         if (local_tf_map[i] > 0)
@@ -570,6 +572,7 @@ int main(int argc, char* argv[])
     std::cout << "The number of tokens in the output block is: " << block_token_num << std::endl;
     std::cout << "Local vocab_size for the output block is: " << non_zero_count << std::endl;
 
+    std::cout << "word_num 2) = " << word_num << "\n";
     // write global tf
     for (int i = 0; i < word_num; ++i)
     {
@@ -578,6 +581,7 @@ int main(int argc, char* argv[])
             vocab_file.write(reinterpret_cast<char*> (&global_tf_map[i]), sizeof(int32_t));
         }
     }
+    std::cout << "word_num 3) = " << word_num << "\n";
     // write local tf
     for (int i = 0; i < word_num; ++i)
     {
@@ -590,17 +594,13 @@ int main(int argc, char* argv[])
     vocab_file.write(reinterpret_cast<char*>(&non_zero_count), sizeof(int32_t));
     vocab_file.close();
 
+    std::cout << "llda local map size= " << local_tf_map.size() << "\n";
+    std::cout << "llda global map size= " << global_tf_map.size() << "\n";
     std::cout << "ok3\n";
     int32_t block_idx(output_offset);
-    for (int i = 0; i < word_num; ++i)
-    {
-        if (local_tf_map[i] > 0)
-        {
-            database.WriteVocab(block_idx,i,global_tf_map[i],local_tf_map[i]);
-        }
-    }
+    database.WriteVocab(block_idx,global_tf_map,local_tf_map);
 
-
+std::cout << "ok4\n";
 
     txt_vocab_file << non_zero_count << std::endl;
     for (int i = 0; i < word_num; ++i)
