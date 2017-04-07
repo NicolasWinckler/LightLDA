@@ -407,7 +407,6 @@ int main(int argc, char* argv[])
     int32_t output_offset = atoi(argv[4]);
     std::string uri(argv[5]);
 
-    uri="mongodb://qxadmin:qx16admin@127.0.0.1/test?authSource=users";
     std::cout << "ok1\n";
 
     InitMongoDB database;
@@ -531,6 +530,11 @@ int main(int argc, char* argv[])
                 {
                     local_tf_map[word_id]++;
                 }
+                //debug start
+                if(global_tf_map.find(word_id) == global_tf_map.end())
+                    std::cout << "found word in local that is not in global tf (word_id="
+                            << word_id << "\n";
+                //debug end
                 ++block_token_num;
                 ++doc_token_count;
                 if (doc_token_count >= kMaxDocLength) break;
