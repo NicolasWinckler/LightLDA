@@ -398,23 +398,16 @@ int main(int argc, char* argv[])
         exit(1);
     }
 
-
-
-
     std::string libsvm_file_name(argv[1]);
     std::string word_dict_file_name(argv[2]);
     std::string output_dir(argv[3]);
     int32_t output_offset = atoi(argv[4]);
     std::string uri(argv[5]);
 
-    std::cout << "ok1\n";
+    uri="mongodb://localhost:27017";
 
     InitMongoDB database;
-    database.SetVocabDBParameters(uri,"LightLDATest","vocabCollection");
-
-
-    std::cout << "ok2\n";
-
+    database.SetVocabDBParameters(uri,"mydb","vocabCollection");
 
     const int32_t kMaxDocLength = 8192;
 
@@ -479,7 +472,7 @@ int main(int argc, char* argv[])
     int doc_buf_idx;
 
     double dump_start = get_time();
-
+    bool g_errorFlag=false;
     offset_buf[0] = 0;
     for (int64_t j = 0; j < doc_num; ++j)
     {
@@ -530,17 +523,14 @@ int main(int argc, char* argv[])
                 {
                     local_tf_map[word_id]++;
                 }
-                //debug start
-                if(global_tf_map.find(word_id) == global_tf_map.end())
-                    std::cout << "found word in local that is not in global tf (word_id="
-                            << word_id << "\n";
-                //debug end
+
                 ++block_token_num;
                 ++doc_token_count;
                 if (doc_token_count >= kMaxDocLength) break;
             }
             while (*ptr == ' ' || *ptr == '\r') ++ptr;
         }
+        
         // The input data may be already sorted
         std::sort(doc_tokens.begin(), doc_tokens.end(), Compare);
 
@@ -556,6 +546,7 @@ int main(int argc, char* argv[])
         block_file.write_doc(doc_buf, doc_buf_idx);
         offset_buf[j + 1] = offset_buf[j] + doc_buf_idx;
     }
+
     block_file.write_real_header(offset_buf, doc_num);
 
     int32_t vocab_size = 0;
@@ -564,55 +555,86 @@ int main(int argc, char* argv[])
 
     int32_t non_zero_count = 0;
     // write vocab
-    std::cout << "word_num 1) = " << word_num << "\n";
-    for (int i = 0; i < word_num; ++i)
+
+    /*for (int i = 0; i < word_num; ++i)
     {
         if (local_tf_map[i] > 0)
         {
             non_zero_count++;
             vocab_file.write(reinterpret_cast<char*> (&i), sizeof(int32_t));
         }
+    }*/
+
+    for(auto& p : global_tf_map)
+    {
+        if(local_tf_map.count(p.first))
+            if(local_tf_map.at(p.first) > 0)
+            {
+                int32_t i = p.first;
+                non_zero_count++;
+                vocab_file.write(reinterpret_cast<char*> (&i), sizeof(int32_t));
+            }
     }
     std::cout << "The number of tokens in the output block is: " << block_token_num << std::endl;
     std::cout << "Local vocab_size for the output block is: " << non_zero_count << std::endl;
 
-    std::cout << "word_num 2) = " << word_num << "\n";
+
     // write global tf
-    for (int i = 0; i < word_num; ++i)
+    /*for (int i = 0; i < word_num; ++i)
     {
         if (local_tf_map[i] > 0)
         {
             vocab_file.write(reinterpret_cast<char*> (&global_tf_map[i]), sizeof(int32_t));
         }
+    }*/
+    for(auto& p : global_tf_map)
+    {
+        if(local_tf_map.count(p.first))
+            if(local_tf_map.at(p.first) > 0)
+            {
+                vocab_file.write(reinterpret_cast<char*> (&p.second), sizeof(int32_t));
+            }
     }
-    std::cout << "word_num 3) = " << word_num << "\n";
     // write local tf
-    for (int i = 0; i < word_num; ++i)
+    /*for (int i = 0; i < word_num; ++i)
     {
         if (local_tf_map[i] > 0)
         {
+            // code below increase size by adding new key values
             vocab_file.write(reinterpret_cast<char*> (&local_tf_map[i]), sizeof(int32_t));
         }
+    }*/
+    for(auto& p : global_tf_map)
+    {
+        if(local_tf_map.count(p.first))
+            if(local_tf_map.at(p.first) > 0)
+            {
+                vocab_file.write(reinterpret_cast<char*> (&local_tf_map.at(p.first)), sizeof(int32_t));
+            }
     }
     vocab_file.seekp(0);
     vocab_file.write(reinterpret_cast<char*>(&non_zero_count), sizeof(int32_t));
     vocab_file.close();
 
-    std::cout << "llda local map size= " << local_tf_map.size() << "\n";
-    std::cout << "llda global map size= " << global_tf_map.size() << "\n";
-    std::cout << "ok3\n";
     int32_t block_idx(output_offset);
     database.WriteVocab(block_idx,global_tf_map,local_tf_map);
 
-std::cout << "ok4\n";
 
     txt_vocab_file << non_zero_count << std::endl;
-    for (int i = 0; i < word_num; ++i)
+    /*for (int i = 0; i < word_num; ++i)
     {
         if (local_tf_map[i] > 0)
         {
             txt_vocab_file << i << "\t" << global_tf_map[i] << "\t" << local_tf_map[i] << std::endl;
         }
+    }*/
+    for(auto& p : global_tf_map)
+    {
+        if(local_tf_map.count(p.first))
+            if(local_tf_map.at(p.first) > 0)
+            {
+                txt_vocab_file << p.first << "\t" << p.second << "\t" << local_tf_map.at(p.first) << std::endl;
+            }
     }
     txt_vocab_file.close();
 

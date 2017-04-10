@@ -143,54 +143,75 @@ namespace mongoHelper
 {
     template<typename T, typename U>
     using enable_if_match = typename std::enable_if<std::is_same<T,U>::value,int>::type;
-    struct MapValues{};
-    struct MapKeys{};
+    struct LocalMap{};
+    struct Index{};
+    struct GlobalMap{};
 }
 
 
-template <typename map_type, typename impl_type = mongoHelper::MapValues>
+template <typename map_type, typename impl_type = mongoHelper::LocalMap>
 class tf_map_convertor_impl {
 public:
-    tf_map_convertor_impl(map_type* inputMap, map_type* compareMap) : _inputMap(inputMap), _compareMap(compareMap)
+    tf_map_convertor_impl(map_type* local, map_type* global) : _localMap(local), _globalMap(global)
     {
     }
 
-    template <typename T=impl_type, mongoHelper::enable_if_match<T , mongoHelper::MapValues> = 0>
+    template <typename T=impl_type, mongoHelper::enable_if_match<T , mongoHelper::LocalMap> = 0>
     void operator()(bsoncxx::builder::stream::array_context<> ac) const
     {
-        std::cout << " size in map :      " << _inputMap->size() << "\n";
-        std::cout << " size comp map :      " << _compareMap->size() << "\n";
+        std::cout << " size in map :      " << _localMap->size() << "\n";
+        std::cout << " size comp map :      " << _globalMap->size() << "\n";
 
-        for (auto i(0); i<_compareMap->size(); i++)
+        for(const auto& p : *_globalMap)
         {
-            if(_compareMap->at(i) > 0)
-            {
-                //std::cout << i << " :      " << _inputMap->at(i) << "\n";
-                ac << _inputMap->at(i);
-            }
+            if(_localMap->count(p.first))
+                if(_localMap->at(p.second > 0))
+                {
+                    //std::cout << i << " :      " << _localMap->at(i) << "\n";
+                    ac << _localMap->at(p.first);
+                }
         }
     }
 
-    template <typename T=impl_type, mongoHelper::enable_if_match<T , mongoHelper::MapKeys> = 0>
+    template <typename T=impl_type, mongoHelper::enable_if_match<T , mongoHelper::GlobalMap> = 0>
     void operator()(bsoncxx::builder::stream::array_context<> ac) const
     {
-        for (auto i(0); i<_compareMap->size(); i++)
+        std::cout << " size in map :      " << _localMap->size() << "\n";
+        std::cout << " size comp map :      " << _globalMap->size() << "\n";
+
+        for(const auto& p : *_globalMap)
         {
-            if(_compareMap->at(i) > 0)
-            {
-                ac << i;
-            }
+            if(_localMap->count(p.first))
+                if(_localMap->at(p.second > 0))
+                {
+                    //std::cout << i << " :      " << _localMap->at(i) << "\n";
+                    ac << _globalMap->at(p.first);
+                }
+        }
+    }
+
+    template <typename T=impl_type, mongoHelper::enable_if_match<T , mongoHelper::Index> = 0>
+    void operator()(bsoncxx::builder::stream::array_context<> ac) const
+    {
+        for(const auto& p : *_globalMap)
+        {
+            if(_localMap->count(p.first))
+                if(_localMap->at(p.second > 0))
+                {
+                    //std::cout << i << " :      " << _localMap->at(i) << "\n";
+                    ac << p.first;
+                }
         }
     }
 
 private:
-    map_type* _inputMap;
-    map_type* _compareMap;
+    map_type* _localMap;
+    map_type* _globalMap;
 };
 
 
 
-template<typename T, typename U = mongoHelper::MapValues>
+template<typename T, typename U = mongoHelper::LocalMap>
 auto tf_map_convertor(T* mapin,T* mapcomp) -> decltype(tf_map_convertor_impl<T,U>(mapin,mapcomp))
 {
     return tf_map_convertor_impl<T,U>(mapin,mapcomp);
@@ -198,7 +219,7 @@ auto tf_map_convertor(T* mapin,T* mapcomp) -> decltype(tf_map_convertor_impl<T,U
 
 typedef std::unordered_map<int32_t ,int32_t > UMap;
 
-template<typename U = mongoHelper::MapValues>
+template<typename U = mongoHelper::LocalMap>
 auto tf_map_convertor(UMap* mapin,UMap* mapcomp) -> decltype(tf_map_convertor_impl<UMap,U>(mapin,mapcomp))
 {
     return tf_map_convertor_impl<UMap,U>(mapin,mapcomp);
@@ -216,4 +237,54 @@ auto DurationCast(U const& u) -> decltype(std::chrono::duration_cast<T>(u))
 template<typename T>
 using tf_map_convertor_t = typename tf_map_convertor<std::unordered_map<int32_t ,int32_t >,T>;
 */
+
+
+
+
+
+
+template <typename doc_tokens>
+class doctokens_convertor
+{
+public:
+    doctokens_convertor(doc_tokens* tokens) : _tokens(tokens)
+    {
+    }
+
+    void operator()(bsoncxx::builder::stream::array_context<> ac) const
+    {
+        for (const auto& token : *_tokens)
+        {
+            ac << bsoncxx::builder::stream::open_document
+            << "wordId" << token.word_id
+            << "topicId" << token.topic_id
+            << bsoncxx::builder::stream::close_document;
+        }
+    }
+
+private:
+    doc_tokens* _tokens;
+};
+
+template <typename doc_tokens>
+doctokens_convertor<doc_tokens> make_doctokens_convertor(doc_tokens* tokens)
+{
+    return doctokens_convertor<doc_tokens>(tokens);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #endif //LIGHTLDA_MONGOHELPER_H

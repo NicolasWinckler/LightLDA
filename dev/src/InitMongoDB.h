@@ -34,7 +34,7 @@
 
 #include "MongoHelper.h"
 
-
+struct Token;
 class InitMongoDB
 {
     typedef std::unique_ptr<mongocxx::pool> MongoPool_ptr;
@@ -73,7 +73,44 @@ public:
         ClientToVocab_ = std::move(MongoPool_ptr(new mongocxx::pool(mongocxx::uri{VocabMongoUri_})));
     }
 
-    void WriteTrainingData(int64_t docId, int32_t wordId, int32_t topicId)
+    void WriteTrainingData(int64_t docId, std::vector<Token>& doc_tokens)
+    {
+        auto conn = ClientToTrainingData_->acquire();
+        //auto recProcCollection = (*conn)[s_RecProcDB][s_RecProcTrainCollection];
+        auto trainingDataCollection = (*conn)[TrainingDataDBName_][TrainingDataCollectionName_];
+
+        // upsert options
+        mongocxx::options::update updateOpts;
+        updateOpts.upsert(true);
+
+        // filter
+        auto filter = bsoncxx::builder::stream::document{}
+                << "docId" << docId
+                << bsoncxx::builder::stream::finalize;
+
+
+        auto token_array = bsoncxx::builder::stream::array{};
+        token_array << make_doctokens_convertor(&doc_tokens);
+        //open doc
+        bsoncxx::builder::stream::document doc{};
+
+        // code below ok when creating the collection for the first time,
+        doc << "$push"  << bsoncxx::builder::stream::open_document
+            << "tokenIds" << bsoncxx::builder::stream::open_document
+            << "$each"  << bsoncxx::builder::stream::open_array
+            << bsoncxx::builder::concatenate(token_array.view())
+            << bsoncxx::builder::stream::close_array << "$slice" << -kMaxDocLength
+            << bsoncxx::builder::stream::close_document
+            << bsoncxx::builder::stream::close_document;
+
+        // update
+        bsoncxx::document::value fUpdate = doc << bsoncxx::builder::stream::finalize;
+        trainingDataCollection.update_one(filter.view(), std::move(fUpdate), updateOpts);
+        //LOG(DEBUG) << "upserted user " << userId;
+
+    }
+
+    void WriteTrainingDataTemp(int64_t docId, int32_t wordId, int32_t topicId)
     {
         auto conn = ClientToTrainingData_->acquire();
         //auto recProcCollection = (*conn)[s_RecProcDB][s_RecProcTrainCollection];
@@ -190,13 +227,13 @@ public:
         auto id_arr = builder::stream::array{};
 
 
-        std::cout << "[in obj] ok2\n";
-        localtf_arr << tf_map_convertor(&local_tf,&local_tf);
-        std::cout << "[in obj] localtf_arr ok\n";
-        globaltf_arr << tf_map_convertor(&global_tf,&local_tf);
-        std::cout << "[in obj] globaltf_arr ok\n";
-        id_arr << tf_map_convertor<mongoHelper::MapKeys>(&local_tf,&local_tf);
-        std::cout << "[in obj] id_arr ok\n";
+
+        localtf_arr         << tf_map_convertor<mongoHelper::LocalMap>(&local_tf,&global_tf);
+
+        globaltf_arr << tf_map_convertor<mongoHelper::GlobalMap>(&local_tf,&global_tf);
+
+        id_arr << tf_map_convertor<mongoHelper::Index>(&local_tf,&global_tf);
+
         //////
 
         bsoncxx::builder::stream::document tempdoc{};

@@ -62,10 +62,10 @@ int main(int, char**) {
     auto id_arr = array{};
 
 
-    localtf_arr << tf_map_convertor(&local_tf,&local_tf);
+    localtf_arr << tf_map_convertor<mongoHelper::LocalMap>(&local_tf,&local_tf);
 
-    globaltf_arr << tf_map_convertor(&global_tf,&local_tf);
-    id_arr << tf_map_convertor<mongoHelper::MapKeys>(&local_tf,&local_tf);
+    globaltf_arr << tf_map_convertor<mongoHelper::GlobalMap>(&global_tf,&local_tf);
+    id_arr << tf_map_convertor<mongoHelper::Index>(&local_tf,&local_tf);
     int32_t block_idx=0;
 
     bsoncxx::builder::stream::document tempdoc{};
