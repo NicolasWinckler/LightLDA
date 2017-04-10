@@ -36,8 +36,8 @@ int main(int, char**) {
     std::vector<int> some_numbers = {1, 2, 3};
 
 
-    std::unordered_map<int32_t ,int32_t > local_tf = {{0,1},{1,0},{2,1},{3,6},{4,5},{5,1}};
-    std::unordered_map<int32_t ,int32_t > global_tf = {{0,1},{1,213},{2,1},{3,3},{4,5},{5,0}};
+    std::map<int32_t ,int32_t > local_tf = {{0,1},{1,0},{2,1},{3,6},{4,5},{5,1}};
+    std::map<int32_t ,int32_t > global_tf = {{0,1},{1,213},{2,1},{3,3},{4,5},{5,0}};
 
 
     // Adapt our kvps

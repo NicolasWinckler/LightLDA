@@ -16,7 +16,7 @@
 #include <fstream>
 #include <iostream>
 #include <string>
-#include <unordered_map>
+#include <map>
 #include <vector>
 
 #include "InitMongoDB.h"
@@ -356,7 +356,7 @@ void count_doc_num(std::string input_doc, int64_t &doc_num)
     stream.close();
 }
 
-void load_global_tf(std::unordered_map<int32_t, int32_t>& global_tf_map,
+void load_global_tf(std::map<int32_t, int32_t>& global_tf_map,
                     std::string word_tf_file,
                     int64_t& global_tf_count)
 {
@@ -403,12 +403,14 @@ int main(int argc, char* argv[])
     std::string output_dir(argv[3]);
     int32_t output_offset = atoi(argv[4]);
     std::string uri(argv[5]);
+    int32_t block_idx(output_offset);
 
-    uri="mongodb://localhost:27017";
+    //uri="mongodb://localhost:27017";
 
     InitMongoDB database;
-    database.SetVocabDBParameters(uri,"mydb","vocabCollection");
+    database.SetVocabDBParameters(uri,"test","vocabCollection");
 
+    database.SetTrainingDataDBParameters(uri,"test","trainingDataCollection");
     const int32_t kMaxDocLength = 8192;
 
     // 1. count how many documents in the data set
@@ -416,8 +418,8 @@ int main(int argc, char* argv[])
     count_doc_num(libsvm_file_name, doc_num);
 
     // 2. load the word_dict file, get the global {word_id, tf} mapping
-    std::unordered_map<int32_t, int32_t> global_tf_map;
-    std::unordered_map<int32_t, int32_t> local_tf_map;
+    std::map<int32_t, int32_t> global_tf_map;
+    std::map<int32_t, int32_t> local_tf_map;
     int64_t global_tf_count = 0;
     load_global_tf(global_tf_map, word_dict_file_name, global_tf_count);
     int32_t word_num = global_tf_map.size();
@@ -472,7 +474,7 @@ int main(int argc, char* argv[])
     int doc_buf_idx;
 
     double dump_start = get_time();
-    bool g_errorFlag=false;
+
     offset_buf[0] = 0;
     for (int64_t j = 0; j < doc_num; ++j)
     {
@@ -536,6 +538,10 @@ int main(int argc, char* argv[])
 
         doc_buf_idx = 0;
         doc_buf[doc_buf_idx++] = 0; // cursor
+
+
+
+        database.WriteTrainingData(block_idx, j, doc_tokens);
 
         for (auto& token : doc_tokens)
         {
@@ -616,8 +622,8 @@ int main(int argc, char* argv[])
     vocab_file.write(reinterpret_cast<char*>(&non_zero_count), sizeof(int32_t));
     vocab_file.close();
 
-    int32_t block_idx(output_offset);
-    database.WriteVocab(block_idx,global_tf_map,local_tf_map);
+
+    database.WriteVocab(block_idx, global_tf_map, local_tf_map, non_zero_count);
 
 
     txt_vocab_file << non_zero_count << std::endl;

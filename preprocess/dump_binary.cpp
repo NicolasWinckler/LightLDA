@@ -12,7 +12,7 @@
 #include <fstream>
 #include <iostream>
 #include <string>
-#include <unordered_map>
+#include <map>
 #include <vector>
 
 namespace lightlda
@@ -350,7 +350,7 @@ void count_doc_num(std::string input_doc, int64_t &doc_num)
     stream.close();
 }
 
-void load_global_tf(std::unordered_map<int32_t, int32_t>& global_tf_map,
+void load_global_tf(std::map<int32_t, int32_t>& global_tf_map,
     std::string word_tf_file,
     int64_t& global_tf_count)
 {
@@ -403,8 +403,8 @@ int main(int argc, char* argv[])
     count_doc_num(libsvm_file_name, doc_num);
 
     // 2. load the word_dict file, get the global {word_id, tf} mapping
-    std::unordered_map<int32_t, int32_t> global_tf_map;
-    std::unordered_map<int32_t, int32_t> local_tf_map;
+    std::map<int32_t, int32_t> global_tf_map;
+    std::map<int32_t, int32_t> local_tf_map;
     int64_t global_tf_count = 0;
     load_global_tf(global_tf_map, word_dict_file_name, global_tf_count);
     int32_t word_num = global_tf_map.size();
@@ -539,45 +539,82 @@ int main(int argc, char* argv[])
 
     int32_t non_zero_count = 0;
     // write vocab
-    for (int i = 0; i < word_num; ++i)
+    /*for (int i = 0; i < word_num; ++i)
     {
         if (local_tf_map[i] > 0)
         {
             non_zero_count++;
             vocab_file.write(reinterpret_cast<char*> (&i), sizeof(int32_t));
         }
+    }*/
+    for(auto& p : global_tf_map)
+    {
+        if(local_tf_map.count(p.first))
+            if(local_tf_map.at(p.first) > 0)
+            {
+                int32_t i = p.first;
+                non_zero_count++;
+                vocab_file.write(reinterpret_cast<char*> (&i), sizeof(int32_t));
+            }
     }
     std::cout << "The number of tokens in the output block is: " << block_token_num << std::endl;
     std::cout << "Local vocab_size for the output block is: " << non_zero_count << std::endl;
 
     // write global tf
-    for (int i = 0; i < word_num; ++i)
+    /*for (int i = 0; i < word_num; ++i)
     {
         if (local_tf_map[i] > 0)
         {
             vocab_file.write(reinterpret_cast<char*> (&global_tf_map[i]), sizeof(int32_t));
         }
+    }*/
+    for(auto& p : global_tf_map)
+    {
+        if(local_tf_map.count(p.first))
+            if(local_tf_map.at(p.first) > 0)
+            {
+                vocab_file.write(reinterpret_cast<char*> (&p.second), sizeof(int32_t));
+            }
     }
     // write local tf
+    /*
     for (int i = 0; i < word_num; ++i)
     {
         if (local_tf_map[i] > 0)
         {
             vocab_file.write(reinterpret_cast<char*> (&local_tf_map[i]), sizeof(int32_t));
         }
+    }*/
+    for(auto& p : global_tf_map)
+    {
+        if(local_tf_map.count(p.first))
+            if(local_tf_map.at(p.first) > 0)
+            {
+                vocab_file.write(reinterpret_cast<char*> (&local_tf_map.at(p.first)), sizeof(int32_t));
+            }
     }
+
     vocab_file.seekp(0);
     vocab_file.write(reinterpret_cast<char*>(&non_zero_count), sizeof(int32_t));
     vocab_file.close();
 
     txt_vocab_file << non_zero_count << std::endl;
-    for (int i = 0; i < word_num; ++i)
+    /*for (int i = 0; i < word_num; ++i)
     {
         if (local_tf_map[i] > 0)
         {
             txt_vocab_file << i << "\t" << global_tf_map[i] << "\t" << local_tf_map[i] << std::endl;
         }
+    }*/
+    for(auto& p : global_tf_map)
+    {
+        if(local_tf_map.count(p.first))
+            if(local_tf_map.at(p.first) > 0)
+            {
+                txt_vocab_file << p.first << "\t" << p.second << "\t" << local_tf_map.at(p.first) << std::endl;
+            }
     }
+
     txt_vocab_file.close();
 
     double dump_end = get_time();

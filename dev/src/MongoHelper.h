@@ -176,8 +176,8 @@ public:
     template <typename T=impl_type, mongoHelper::enable_if_match<T , mongoHelper::GlobalMap> = 0>
     void operator()(bsoncxx::builder::stream::array_context<> ac) const
     {
-        std::cout << " size in map :      " << _localMap->size() << "\n";
-        std::cout << " size comp map :      " << _globalMap->size() << "\n";
+        //std::cout << " size in map :      " << _localMap->size() << "\n";
+        //std::cout << " size comp map :      " << _globalMap->size() << "\n";
 
         for(const auto& p : *_globalMap)
         {
@@ -217,7 +217,7 @@ auto tf_map_convertor(T* mapin,T* mapcomp) -> decltype(tf_map_convertor_impl<T,U
     return tf_map_convertor_impl<T,U>(mapin,mapcomp);
 }
 
-typedef std::unordered_map<int32_t ,int32_t > UMap;
+typedef std::map<int32_t ,int32_t > UMap;
 
 template<typename U = mongoHelper::LocalMap>
 auto tf_map_convertor(UMap* mapin,UMap* mapcomp) -> decltype(tf_map_convertor_impl<UMap,U>(mapin,mapcomp))

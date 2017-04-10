@@ -12,7 +12,7 @@
 #include <fstream>
 #include <iostream>
 #include <string>
-#include <unordered_map>
+#include <map>
 #include <vector>
 
 
@@ -62,6 +62,16 @@ public:
         TrainingDataCollectionName_ = collectionName;
 
         ClientToTrainingData_ = std::move(MongoPool_ptr(new mongocxx::pool(mongocxx::uri{TrainingDataMongoUri_})));
+
+
+        // create mongoDB indexes
+        // TODO check if the db whether it is new, whether it is already indexed etc..
+        auto conn = ClientToTrainingData_->acquire();
+        auto trainingDataCollection = (*conn)[TrainingDataDBName_][TrainingDataCollectionName_];
+
+        bsoncxx::builder::stream::document index_builder;
+        index_builder << "block_idx" << 1 << "docId" << 1;
+        trainingDataCollection.create_index(index_builder.view(), {});
     }
 
     void SetVocabDBParameters(const std::string& uri, const std::string& DBName, const std::string& collectionName)
@@ -73,7 +83,7 @@ public:
         ClientToVocab_ = std::move(MongoPool_ptr(new mongocxx::pool(mongocxx::uri{VocabMongoUri_})));
     }
 
-    void WriteTrainingData(int64_t docId, std::vector<Token>& doc_tokens)
+    void WriteTrainingData(int32_t block_idx, int64_t docId, std::vector<Token>& doc_tokens)
     {
         auto conn = ClientToTrainingData_->acquire();
         //auto recProcCollection = (*conn)[s_RecProcDB][s_RecProcTrainCollection];
@@ -85,6 +95,7 @@ public:
 
         // filter
         auto filter = bsoncxx::builder::stream::document{}
+                << "block_idx" << block_idx
                 << "docId" << docId
                 << bsoncxx::builder::stream::finalize;
 
@@ -95,7 +106,11 @@ public:
         bsoncxx::builder::stream::document doc{};
 
         // code below ok when creating the collection for the first time,
-        doc << "$push"  << bsoncxx::builder::stream::open_document
+        doc << "$set" << bsoncxx::builder::stream::open_document
+                << "block_idx" << block_idx
+                << "docId" << docId
+                << bsoncxx::builder::stream::close_document
+                << "$push"  << bsoncxx::builder::stream::open_document
             << "tokenIds" << bsoncxx::builder::stream::open_document
             << "$each"  << bsoncxx::builder::stream::open_array
             << bsoncxx::builder::concatenate(token_array.view())
@@ -110,105 +125,16 @@ public:
 
     }
 
-    void WriteTrainingDataTemp(int64_t docId, int32_t wordId, int32_t topicId)
-    {
-        auto conn = ClientToTrainingData_->acquire();
-        //auto recProcCollection = (*conn)[s_RecProcDB][s_RecProcTrainCollection];
-        auto trainingDataCollection = (*conn)[TrainingDataDBName_][TrainingDataCollectionName_];
-
-        // upsert options
-        mongocxx::options::update updateOpts;
-        updateOpts.upsert(true);
-
-        // filter
-        auto filter = bsoncxx::builder::stream::document{}
-                << "docId" << docId
-                << bsoncxx::builder::stream::finalize;
-
-        //open doc
-        bsoncxx::builder::stream::document doc{};
-
-        // code below ok when creating the collection for the first time,
-        doc << "$push"  << bsoncxx::builder::stream::open_document
-            << "tokenIds" << bsoncxx::builder::stream::open_document
-            << "$each"  << bsoncxx::builder::stream::open_array
-            << bsoncxx::builder::stream::open_document
-            << "wordId" << wordId
-            << "topicId" << topicId
-            << bsoncxx::builder::stream::close_document
-            << bsoncxx::builder::stream::close_array << "$slice" << -kMaxDocLength
-            << bsoncxx::builder::stream::close_document
-            << bsoncxx::builder::stream::close_document;
-
-        // update
-        bsoncxx::document::value fUpdate = doc << bsoncxx::builder::stream::finalize;
-        trainingDataCollection.update_one(filter.view(), std::move(fUpdate), updateOpts);
-        //LOG(DEBUG) << "upserted user " << userId;
-
-    }
-
-    void WriteVocabTemp(int32_t block_idx, int32_t wordId, int32_t global_tf, int32_t local_tf)
-    {
-
-        auto conn = ClientToVocab_->acquire();
-        auto vocabCollection = (*conn)[VocabDBName_][VocabCollectionName_];
-
-        // upsert options
-        mongocxx::options::update updateOpts;
-        updateOpts.upsert(true);
-
-        // filter
-        auto filter = bsoncxx::builder::stream::document{}
-                << "block_idx" << block_idx
-                << bsoncxx::builder::stream::finalize;
-
-        //open doc
-        bsoncxx::builder::stream::document doc{};
-
-        // code below ok when creating the collection for the first time,
-        doc << "block_idx" << block_idx
-            << "vocab" << bsoncxx::builder::stream::open_document
-                << "$push"  << bsoncxx::builder::stream::open_document
-                    << "id" << bsoncxx::builder::stream::open_document
-                        << "$each"  << bsoncxx::builder::stream::open_array
-                            <<  wordId
-                        << bsoncxx::builder::stream::close_array << "$slice" << -kMaxVocab
-                    << bsoncxx::builder::stream::close_document
-                << bsoncxx::builder::stream::close_document;
-
-
-        doc << "$push"  << bsoncxx::builder::stream::open_document
-            << "global_tf" << bsoncxx::builder::stream::open_document
-            << "$each"  << bsoncxx::builder::stream::open_array
-            << global_tf
-            << bsoncxx::builder::stream::close_array << "$slice" << -kMaxVocab
-            << bsoncxx::builder::stream::close_document
-            << bsoncxx::builder::stream::close_document;
-
-        doc << "$push"  << bsoncxx::builder::stream::open_document
-            << "local_tf" << bsoncxx::builder::stream::open_document
-            << "$each"  << bsoncxx::builder::stream::open_array
-            << local_tf
-            << bsoncxx::builder::stream::close_array << "$slice" << -kMaxVocab
-            << bsoncxx::builder::stream::close_document
-            << bsoncxx::builder::stream::close_document
-            << bsoncxx::builder::stream::close_document;
-
-        // update
-        bsoncxx::document::value fUpdate = doc << bsoncxx::builder::stream::finalize;
-        vocabCollection.update_one(filter.view(), std::move(fUpdate), updateOpts);
-        //LOG(DEBUG) << "upserted user " << userId;
-
-    }
 
 
 
     void WriteVocab(int32_t block_idx,
-                    std::unordered_map<int32_t ,int32_t >& global_tf,
-                    std::unordered_map<int32_t ,int32_t >& local_tf)
+                    std::map<int32_t ,int32_t >& global_tf,
+                    std::map<int32_t ,int32_t >& local_tf,
+                    int32_t non_zero_counts)
     {
 
-        std::cout << "[in obj] ok1\n";
+
         auto conn = ClientToVocab_->acquire();
         auto vocabCollection = (*conn)[VocabDBName_][VocabCollectionName_];
 
@@ -243,6 +169,7 @@ public:
                                 /* open vocab obj */
                                 << "vocab" << bsoncxx::builder::stream::open_document
                                 //<< bsoncxx::builder::concatenate(doc.view())
+                                << "vocab_size" << non_zero_counts
                                 /* id array */
                                 << "id"
                                 << bsoncxx::builder::stream::open_array
