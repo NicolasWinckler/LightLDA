@@ -12,7 +12,7 @@ namespace multiverso { namespace lightlda
     class MemoryDataStream :public IDataStream
     {
     public:
-        MemoryDataStream(int32_t num_blocks, std::string data_path);
+        MemoryDataStream(int32_t num_blocks, std::string data_path, std::string mongo_uri="mongodb://localhost:27017");
         virtual ~MemoryDataStream();
         virtual void BeforeDataAccess() override;
         virtual void EndDataAccess() override;
@@ -21,6 +21,7 @@ namespace multiverso { namespace lightlda
         std::vector<DataBlock*> data_buffer_;
         std::string data_path_;
         int32_t index_;
+        std::string _mongo_uri;
 
         // No copying allowed
         MemoryDataStream(const MemoryDataStream&);
@@ -32,7 +33,7 @@ namespace multiverso { namespace lightlda
         typedef DoubleBuffer<DataBlock> DataBuffer;
     public:
         DiskDataStream(int32_t num_blocks, std::string data_path,
-            int32_t num_iterations);
+            int32_t num_iterations, std::string mongo_uri="mongodb://localhost:27017");
         virtual ~DiskDataStream();
         virtual void BeforeDataAccess() override;
         virtual void EndDataAccess() override;
@@ -55,14 +56,15 @@ namespace multiverso { namespace lightlda
         /*! \brief backend thread for data preload */
         std::thread preload_thread_;
         bool working_;
+        std::string _mongo_uri;
 
         // No copying allowed
         DiskDataStream(const DiskDataStream&);
         void operator=(const DiskDataStream&);
     };
 
-    MemoryDataStream::MemoryDataStream(int32_t num_blocks, std::string data_path)
-        : data_path_(data_path), index_(0)
+    MemoryDataStream::MemoryDataStream(int32_t num_blocks, std::string data_path, std::string mongo_uri)
+        : data_path_(data_path), index_(0), _mongo_uri(mongo_uri)
     {
         data_buffer_.resize(num_blocks, nullptr);
         for (int32_t i = 0; i < num_blocks; ++i)
@@ -70,16 +72,19 @@ namespace multiverso { namespace lightlda
             data_buffer_[i] = new DataBlock();
             data_buffer_[i]->SetFileName(data_path_ + "/block."
                 + std::to_string(i));
-            data_buffer_[i]->Read();
+            data_buffer_[i]->SetMongoParameters(_mongo_uri,"test","trainingDataCollection");
+            data_buffer_[i]->Read(i);
         }
     }
     MemoryDataStream::~MemoryDataStream()
     {
+        int32_t block_id=0;// temp for test
         for (auto& data : data_buffer_)
         {
-            data->Write();
+            data->Write(block_id);
             delete data;
             data = nullptr;
+            block_id++;
         }
     }
     void MemoryDataStream::BeforeDataAccess()
@@ -97,13 +102,23 @@ namespace multiverso { namespace lightlda
     }
 
     DiskDataStream::DiskDataStream(int32_t num_blocks,
-        std::string data_path, int32_t num_iterations) :
-        num_blocks_(num_blocks), data_path_(data_path),
-        num_iterations_(num_iterations), working_(false)
+        std::string data_path, int32_t num_iterations, std::string mongo_uri) :
+            buffer_0(nullptr),
+            buffer_1(nullptr),
+            data_buffer_(nullptr),
+            block_id_(0),
+            num_blocks_(num_blocks),
+            num_iterations_(num_iterations),
+            data_path_(data_path),
+            preload_thread_(),
+            working_(false),
+            _mongo_uri(mongo_uri)
     {
         block_id_ = 0;
         buffer_0 = new DataBlock();
         buffer_1 = new DataBlock();
+        buffer_0->SetMongoParameters(_mongo_uri,"test","trainingDataCollection");
+        buffer_1->SetMongoParameters(_mongo_uri,"test","trainingDataCollection");
         data_buffer_ = new DataBuffer(1, buffer_0, buffer_1);
         preload_thread_ = std::thread(&DiskDataStream::DataPreloadMain, this);
         while (!working_)
@@ -148,7 +163,7 @@ namespace multiverso { namespace lightlda
             + std::to_string(block_id);
         data_buffer_->Start(0);
         data_buffer_->IOBuffer().SetFileName(block_file);
-        data_buffer_->IOBuffer().Read();
+        data_buffer_->IOBuffer().Read(block_id);
         data_buffer_->End(0);
         working_ = true;
         for (int32_t iter = 0; iter <= num_iterations_; ++iter)
@@ -160,7 +175,7 @@ namespace multiverso { namespace lightlda
                 DataBlock& data_block = data_buffer_->IOBuffer();
                 if (data_block.HasLoad())
                 {
-                    data_block.Write();
+                    data_block.Write(block_id);
                 }
                 if (iter == num_iterations_ && block_id == num_blocks_ - 1)
                 {
@@ -171,7 +186,7 @@ namespace multiverso { namespace lightlda
                 block_file = data_path_ + "/block." + 
                     std::to_string(next_block_id);
                 data_block.SetFileName(block_file);
-                data_block.Read();
+                data_block.Read(next_block_id);
                 data_buffer_->End(0);
             }
         }
@@ -181,12 +196,14 @@ namespace multiverso { namespace lightlda
     {
         if (Config::out_of_core && Config::num_blocks != 1)
         {
+            std::cout << "create DiskDataStream with uri = " << Config::mongo_uri << std::endl;
             return new DiskDataStream(Config::num_blocks, Config::input_dir,
-                Config::num_iterations);
+                Config::num_iterations, Config::mongo_uri);
         }
         else
         {
-            return new MemoryDataStream(Config::num_blocks, Config::input_dir);
+            std::cout << "create MemoryDataStream with uri = " << Config::mongo_uri << std::endl;
+            return new MemoryDataStream(Config::num_blocks, Config::input_dir, Config::mongo_uri);
         }
     }
 } // namespace lightlda

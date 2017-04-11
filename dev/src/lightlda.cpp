@@ -24,6 +24,8 @@
 
 #include <bsoncxx/builder/stream/document.hpp>
 #include <bsoncxx/builder/stream/array.hpp>
+#include <mongocxx/exception/exception.hpp>
+#include <bsoncxx/exception/exception.hpp>
 
 namespace multiverso { namespace lightlda
 {     
@@ -33,16 +35,22 @@ namespace multiverso { namespace lightlda
         static void Run(int argc, char** argv)
         {
             Config::Init(argc, argv);
-            
+            mongo_uri_ = Config::mongo_uri;
+            std::cout << "ok1\n";
             AliasTable* alias_table = new AliasTable();
             Barrier* barrier = new Barrier(Config::num_local_workers);
+            std::cout << "ok1-a\n";
+            meta.SetMongoParameters(mongo_uri_,"test","vocabCollection");
+            std::cout << "ok1-b\n";
             meta.Init();
+            std::cout << "ok1-c\n";
             std::vector<TrainerBase*> trainers;
             for (int32_t i = 0; i < Config::num_local_workers; ++i)
             {
                 Trainer* trainer = new Trainer(alias_table, barrier, &meta);
                 trainers.push_back(trainer);
             }
+            std::cout << "ok2\n";
 
             ParamLoader* param_loader = new ParamLoader();
             multiverso::Config config;
@@ -50,15 +58,21 @@ namespace multiverso { namespace lightlda
             config.num_aggregator = Config::num_aggregator;
             config.server_endpoint_file = Config::server_file;
 
+            std::cout << "ok3\n";
+
             Multiverso::Init(trainers, param_loader, config, &argc, &argv);
 
+            std::cout << "ok4\n";
             Log::ResetLogFile("LightLDA."
                 + std::to_string(clock()) + ".log");
 
             data_stream = CreateDataStream();
+            std::cout << "ok5\n";
             InitMultiverso();
+            std::cout << "ok6\n";
             Train();
 
+            std::cout << "ok7\n";
             Multiverso::Close();
             
             for (auto& trainer : trainers)
@@ -161,7 +175,7 @@ namespace multiverso { namespace lightlda
         {
             mongocxx::pool ClientToModel(mongocxx::uri{mongo_uri_});
             auto conn = ClientToModel.acquire();
-            auto doc_topicCollection = (*conn)["Test"]["docTopicModel"];
+            auto doc_topicCollection = (*conn)["test"]["docTopicModel"];
             mongocxx::options::update updateOpts;
             updateOpts.upsert(true);
             
@@ -305,6 +319,21 @@ namespace multiverso { namespace lightlda
 
 int main(int argc, char** argv)
 {
-    multiverso::lightlda::LightLDA::Run(argc, argv);
+    try
+    {
+        multiverso::lightlda::LightLDA::Run(argc, argv);
+    }
+    catch(mongocxx::exception& e)
+    {
+        std::cout << "[mongocxx::exception] exception caught: " << e.what();
+    }
+    catch(bsoncxx::exception& e)
+    {
+        std::cout << "[bsoncxx::exception] exception caught: " << e.what();
+    }
+    catch(std::exception& e) {
+        std::cout << "[std::exception] exception caught: " << e.what();
+    }
+
     return 0;
 }

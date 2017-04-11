@@ -30,7 +30,7 @@ int main(int argc, char* argv[])
 int test2()
 {
     std::string uri("mongodb://localhost:27017");
-    int32_t block_idx=0;
+    //int32_t block_idx=0;
 
     
 
@@ -38,7 +38,7 @@ int test2()
     database.SetVocabDBParameters(uri,"test","vocabCollection");
 
     database.SetTrainingDataDBParameters(uri,"test","trainingDataCollection");
-    const int32_t kMaxDocLength = 8192;
+    //const int32_t kMaxDocLength = 8192;
 
 
     std::vector<Token> doc_tokens;

@@ -21,6 +21,7 @@ namespace multiverso { namespace lightlda
     std::string Config::server_file = "";
     std::string Config::input_dir = "";
     std::string Config::output_dir = "";
+    std::string Config::mongo_uri = "mongodb://localhost:27017";
     bool Config::warm_start = false;
     bool Config::inference = false;
     bool Config::out_of_core = false;
@@ -57,6 +58,7 @@ namespace multiverso { namespace lightlda
             if (strcmp(argv[i], "-input_dir") == 0) input_dir = std::string(argv[i + 1]);
             if (strcmp(argv[i], "-output_dir") == 0) output_dir = std::string(argv[i + 1]);
             if (strcmp(argv[i], "-server_file") == 0) server_file = std::string(argv[i + 1]);
+            if (strcmp(argv[i], "-mongo_uri") == 0) mongo_uri = std::string(argv[i + 1]);
             if (strcmp(argv[i], "-warm_start") == 0) warm_start = true;
             if (strcmp(argv[i], "-out_of_core") == 0) out_of_core = true;
             if (strcmp(argv[i], "-db_mode") == 0) db_mode = true;
@@ -94,6 +96,7 @@ namespace multiverso { namespace lightlda
         printf("-model_capacity <arg>    Memory pool size(MB) for local model cache\n");
         printf("-alias_capacity <arg>    Memory pool size(MB) for alias table \n");
         printf("-delta_capacity <arg>    Memory pool size(MB) for local delta cache\n");
+        printf("-mongo_uri <arg>         mongo DB URI \n");
         exit(0);
     }
 

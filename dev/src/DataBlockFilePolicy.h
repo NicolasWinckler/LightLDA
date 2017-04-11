@@ -77,9 +77,9 @@ namespace multiverso
 
 
             //////////////////////////
-            void Read()
+            void Read(int32_t block_id)
             {
-
+                //std::string file_name_ = data_path_ + "/block." + std::to_string(block_id);
                 std::ifstream block_file(file_name_, std::ios::in | std::ios::binary);
                 if (!block_file.good())
                 {
@@ -115,7 +115,7 @@ namespace multiverso
                 has_read_ = true;
             }
 
-            void Write()
+            void Write(int32_t block_id)
             {
                 std::string temp_file = file_name_ + ".temp";
 

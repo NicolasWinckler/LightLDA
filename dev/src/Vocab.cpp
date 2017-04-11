@@ -7,7 +7,7 @@
 namespace multiverso { namespace lightlda
 {
     LocalVocab::LocalVocab() 
-        : num_slices_(0), own_memory_(false), vocabs_(nullptr), size_(0)
+        : num_slices_(0), vocabs_(nullptr), size_(0), own_memory_(false), slice_index_()
     {}
 
     LocalVocab::~LocalVocab()
