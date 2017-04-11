@@ -3,9 +3,59 @@
 //
 
 
+#include <iostream>
+#include <string>
+#include <map>
+#include <vector>
+
+#include "InitMongoDB.h"
 #include "MongoHelper.h"
 
-int main(int, char**) {
+int test1();
+int test2();
+
+struct Token
+{
+    int32_t word_id;
+    int32_t topic_id;
+};
+
+
+int main(int argc, char* argv[])
+{
+    test2();
+}
+
+
+int test2()
+{
+    std::string uri("mongodb://localhost:27017");
+    int32_t block_idx=0;
+
+    
+
+    InitMongoDB database;
+    database.SetVocabDBParameters(uri,"test","vocabCollection");
+
+    database.SetTrainingDataDBParameters(uri,"test","trainingDataCollection");
+    const int32_t kMaxDocLength = 8192;
+
+
+    std::vector<Token> doc_tokens;
+    for(int i=5;i<8;i++)
+    {
+        doc_tokens.push_back({i+660,1});
+
+    }
+    database.WriteTrainingData(1, 1, doc_tokens);
+
+
+
+    return 0;
+}
+
+int test1() {
+
     using builder::stream::document;
     using builder::stream::array;
 
@@ -33,6 +83,8 @@ int main(int, char**) {
                                             {"c", 6}};
 
     // Some values we'd like to append;
+    std::vector<Token> doc_tokens;
+
     std::vector<int> some_numbers = {1, 2, 3};
 
 
