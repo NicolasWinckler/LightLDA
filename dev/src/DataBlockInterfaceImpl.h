@@ -83,8 +83,17 @@ namespace multiverso
         template< typename IOPolicy>
         void DataBlockInterface<IOPolicy>::GenerateDocuments()
         {
+            std::cout << "GenerateDocuments for " << num_document_ << "documents\n";
             for (int32_t index = 0; index < num_document_; ++index)
             {
+                if(index < 10)
+                    std::cout << "index = "
+                              << index
+                              << " offset_buffer_[index] = "
+                              << offset_buffer_[index]
+                              << " offset_buffer_[index + 1] "
+                              << offset_buffer_[index + 1]
+                              << std::endl;
                 documents_[index].reset(new Document(
                         documents_buffer_ + offset_buffer_[index],
                         documents_buffer_ + offset_buffer_[index + 1]));

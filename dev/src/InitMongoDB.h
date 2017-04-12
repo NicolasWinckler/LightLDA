@@ -33,6 +33,7 @@
 #include <bsoncxx/builder/stream/array.hpp>
 
 #include "MongoHelper.h"
+#include "mongocxx/options/index.hpp"
 
 struct Token;
 class InitMongoDB
@@ -57,6 +58,7 @@ public:
 
     void SetTrainingDataDBParameters(const std::string& uri, const std::string& DBName, const std::string& collectionName)
     {
+        std::cout << "in SetTrainingDataDBParameters\n";
         TrainingDataMongoUri_ = uri;
         TrainingDataDBName_ = DBName;
         TrainingDataCollectionName_ = collectionName;
@@ -68,10 +70,17 @@ public:
         // TODO check if the db whether it is new, whether it is already indexed etc..
         auto conn = ClientToTrainingData_->acquire();
         auto trainingDataCollection = (*conn)[TrainingDataDBName_][TrainingDataCollectionName_];
+        mongocxx::options::index opt;
+        opt.unique(true);
 
         bsoncxx::builder::stream::document index_builder;
         index_builder << "block_idx" << 1 << "docId" << 1;
-        trainingDataCollection.create_index(index_builder.view(), {});
+        trainingDataCollection.create_index(index_builder.view(), opt);
+
+        //bsoncxx::builder::stream::document index_builder_blockonly;
+        //index_builder_blockonly << "block_idx" << 1;
+
+        //trainingDataCollection.create_index(index_builder_blockonly.view(), opt);
     }
 
     void SetVocabDBParameters(const std::string& uri, const std::string& DBName, const std::string& collectionName)
@@ -114,7 +123,11 @@ public:
             << "tokenIds" << bsoncxx::builder::stream::open_document
             << "$each"  << bsoncxx::builder::stream::open_array
             << bsoncxx::builder::concatenate(token_array.view())
-            << bsoncxx::builder::stream::close_array << "$slice" << -kMaxDocLength
+            << bsoncxx::builder::stream::close_array
+            << "$sort" << bsoncxx::builder::stream::open_document
+            << "wordId" << 1
+            << bsoncxx::builder::stream::close_document
+            << "$slice" << -kMaxDocLength
             << bsoncxx::builder::stream::close_document
             << bsoncxx::builder::stream::close_document;
 

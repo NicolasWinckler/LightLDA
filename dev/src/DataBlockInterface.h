@@ -9,6 +9,7 @@
 #include <multiverso/multiverso.h>
 #include "Vocab.h"
 
+#include <iostream>
 #include <memory>
 #include <string>
 #include <vector>

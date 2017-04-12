@@ -99,10 +99,22 @@ namespace multiverso
                 }
 
                 doc_buf_idx_=0;
+                DataBlockInterface_->offset_buffer_[0] = 0;
                 for(int64_t docId(0); docId<DataBlockInterface_->num_document_; docId++ )
                 {
                     ReadTrainingData(block_idx,docId);
                 }
+
+
+                //TODO: the check below is useless yet, fix this
+                DataBlockInterface_->corpus_size_ = doc_buf_idx_;
+                if (DataBlockInterface_->corpus_size_ > DataBlockInterface_->memory_block_size_)
+                {
+                    Log::Fatal("Rank %d: corpus_size_ > memory_block_size when reading file \n",
+                               Multiverso::ProcessRank());
+                }
+                DataBlockInterface_->GenerateDocuments();
+                has_read_ = true;
             }
 
             /* write from buffer to destination=MongoDB*/
@@ -147,6 +159,13 @@ namespace multiverso
                 auto conn = ClientToTrainingData_->acquire();
                 auto trainingDataCollection = (*conn)[MongoDBName_][MongoCollectionName_];
 
+                //*
+                //if(docId % 100 == 0)
+                    std::cout << "read training data in DB " << MongoDBName_
+                              << " collection " << MongoCollectionName_
+                              << " block id " << block_idx
+                              << " doc id " << docId << std::endl;
+                //*/
 
                 // filter
                 auto filter = bsoncxx::builder::stream::document{}
@@ -154,6 +173,7 @@ namespace multiverso
                         << "docId" << docId
                         << bsoncxx::builder::stream::finalize;
                 mongocxx::options::find opts{};
+                opts.projection(bsoncxx::builder::stream::document{} << "tokenIds" << 1 << bsoncxx::builder::stream::finalize);
                 opts.no_cursor_timeout(true);
 
                 auto trainingCursor = trainingDataCollection.find(filter.view(), opts);
@@ -176,7 +196,8 @@ namespace multiverso
                             if(observedWord.type() == type::k_document)
                             {
                                 if (doc_token_count >= kMaxDocLength) break;
-                                bsoncxx::document::view tokenView = observedWord.get_document().value;
+                                //bsoncxx::document::view tokenView = observedWord.get_document().value;
+                                bsoncxx::document::view tokenView = observedWord.get_document().view();
 
                                 bsoncxx::document::element word_ele = tokenView["wordId"];
                                 bsoncxx::document::element topic_ele = tokenView["topicId"];
@@ -190,9 +211,11 @@ namespace multiverso
                                 if (topic_ele && topic_ele.type() == bsoncxx::type::k_int32)
                                     topicId = topic_ele.get_int32().value;
 
-                                if(wordId > 0 && topicId > 0)
+
+
+                                if(wordId >= 0 && topicId >= 0)
                                 {
-                                    std::cout << "word id = " << wordId << "  topicId" << wordId << std::endl;
+                                    //std::cout << "word id = " << wordId << "  topicId" << topicId << std::endl;
                                     doc_tokens.push_back({ wordId, topicId });
                                 }
                                 //else
@@ -201,32 +224,29 @@ namespace multiverso
 
                         }// end loop over words
 
-                        std::sort(doc_tokens.begin(), doc_tokens.end(), [](const Token& token1, const Token& token2) 
+                        //db array already sorted at writting side
+                        //*
+                         std::sort(doc_tokens.begin(), doc_tokens.end(), [](const Token& token1, const Token& token2)
                         {
                             return token1.word_id < token2.word_id;
                         });
+                        //*/
+
                         
                         DataBlockInterface_->documents_buffer_[doc_buf_idx_++] = 0;
+                        //*
                         for (auto& token : doc_tokens)
                         {
                             DataBlockInterface_->documents_buffer_[doc_buf_idx_++] = token.word_id;
                             DataBlockInterface_->documents_buffer_[doc_buf_idx_++] = token.topic_id;
-                        }
+                        }//*/
                         
                         //DataBlockInterface_->offset_buffer_[docId + 1] = DataBlockInterface_->offset_buffer_[j] + doc_buf_idx_;
                         DataBlockInterface_->offset_buffer_[docId + 1] = doc_buf_idx_;
                     }
                 }// end loop over doc
 
-                //TODO: the check below is useless yet, fix this
-                DataBlockInterface_->corpus_size_ = doc_buf_idx_;
-                if (DataBlockInterface_->corpus_size_ > DataBlockInterface_->memory_block_size_)
-                {
-                    Log::Fatal("Rank %d: corpus_size_ > memory_block_size when reading file \n",
-                               Multiverso::ProcessRank());
-                }
-                DataBlockInterface_->GenerateDocuments();
-                has_read_ = true;
+
 
             }
 

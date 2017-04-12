@@ -123,10 +123,15 @@ namespace multiverso { namespace lightlda
         static void InitMultiverso()
         {
             Multiverso::BeginConfig();
+            std::cout << "Multiverso::BeginConfig -> done" << std::endl;
             CreateTable();
+            std::cout << "CreateTable() -> done" << std::endl;
             ConfigTable();
+            std::cout << "ConfigTable() -> done" << std::endl;
             Initialize();
+            std::cout << "Initialize() -> done" << std::endl;
             Multiverso::EndConfig();
+            std::cout << "Multiverso::EndConfig() -> done" << std::endl;
         }
 
         static void Initialize()
@@ -134,17 +139,24 @@ namespace multiverso { namespace lightlda
             xorshift_rng rng;
             for (int32_t block = 0; block < Config::num_blocks; ++block)
             {
+                //std::cout << "block = " << block << std::endl;
                 data_stream->BeforeDataAccess();
                 DataBlock& data_block = data_stream->CurrDataBlock();
                 int32_t num_slice = meta.local_vocab(block).num_slice();
                 for (int32_t slice = 0; slice < num_slice; ++slice)
                 {
+                    //std::cout << "slice = " << slice << std::endl;
                     for (int32_t i = 0; i < data_block.Size(); ++i)
                     {
+                        //std::cout << "data_block i = " << i << std::endl;
                         Document* doc = data_block.GetOneDoc(i);
+                        //std::cout << "got one doc "  << std::endl;
                         int32_t& cursor = doc->Cursor();
+                        //std::cout << "got cursor "  << std::endl;
                         if (slice == 0) cursor = 0;
+                        //std::cout << "got test on cursor "  << std::endl;
                         int32_t last_word = meta.local_vocab(block).LastWord(slice);
+                        //std::cout << "got last word "  << std::endl;
                         for (; cursor < doc->Size(); ++cursor)
                         {
                             if (doc->Word(cursor) > last_word) break;
@@ -157,6 +169,7 @@ namespace multiverso { namespace lightlda
                             Multiverso::AddToServer<int64_t>(kSummaryRow,
                                 0, doc->Topic(cursor), 1);
                         }
+                        std::cout << "cursor loop done "  << std::endl;
                     }
                     Multiverso::Flush();
                 }
@@ -199,11 +212,12 @@ namespace multiverso { namespace lightlda
                     Row<int32_t>::iterator iter = doc_topic_counter.Iterator();
                     bsoncxx::builder::stream::document ucpt_doc{};//ucpt = unormalized cpt
 
-                    auto subdocstream = ucpt_doc << "block_idx" << block
-                             << "doc_topic"
-                             << bsoncxx::builder::stream::open_document
-                                    << "idx" <<  doc_i
-                                    << "ucpt" << bsoncxx::builder::stream::open_array;
+                    auto subdocstream = ucpt_doc 
+                                << "block_idx" << block
+                                << "doc_topic"
+                                << bsoncxx::builder::stream::open_document
+                                << "idx" <<  doc_i
+                                << "ucpt" << bsoncxx::builder::stream::open_array;
 
                     while (iter.HasNext())
                     {
