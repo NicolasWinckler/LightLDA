@@ -65,18 +65,7 @@ namespace multiverso
             void Init(DataBlockInterface<DataBlockMongoDBPolicy>* interface)
             {
                 DataBlockInterface_ = interface;
-                // some checks...
-                if(MongoUri_.empty())
-                    Log::Fatal("[DataBlock] Mongo uri is not defined, program will now exit \n");
-
-                if(MongoDBName_.empty())
-                    Log::Fatal("[DataBlock] Mongo DataBase Name is not defined, program will now exit \n");
-
-                if(MongoCollectionName_.empty())
-                    Log::Fatal("[DataBlock] Mongo Collection Name is not defined, program will now exit \n");
-
-                if(!ClientToTrainingData_)
-                    Log::Fatal("[DataBlock] Mongo pool is not not valid, program will now exit \n");
+                
             }
 
 
@@ -88,6 +77,7 @@ namespace multiverso
             /* read from source=MongoDB and store to buffer*/
             void Read(int32_t block_idx)
             {
+                CheckDBParameters();
                 auto conn = ClientToTrainingData_->acquire();
                 auto trainingDataCollection = (*conn)[MongoDBName_][MongoCollectionName_];
 
@@ -118,6 +108,7 @@ namespace multiverso
             /* write from buffer to destination=MongoDB*/
             void Write(int32_t block_idx)
             {
+                CheckDBParameters();
                 //WriteTrainingData();
                 for(int64_t docIdx(0); docIdx<DataBlockInterface_->num_document_; docIdx++)
                 {
@@ -171,7 +162,7 @@ namespace multiverso
                 {
                     bsoncxx::document::element ele_id;
                     
-                    if ((ele_id = doc["tokenIds"]))
+                    if ((ele_id = doc["tokenIds"]) )
                     {
                         bsoncxx::array::view observedWordArray{ele_id.get_array().value};
                         // loop over visited items (array)
@@ -182,26 +173,31 @@ namespace multiverso
                         //bsoncxx::document::view tokenView;
                         for(const auto& observedWord : observedWordArray)
                         {
-                            if (doc_token_count >= kMaxDocLength) break;
-                            bsoncxx::document::view tokenView = observedWord.get_document().view();
+                            if(observedWord.type() == type::k_document)
+                            {
+                                if (doc_token_count >= kMaxDocLength) break;
+                                bsoncxx::document::view tokenView = observedWord.get_document().value;
 
-                            bsoncxx::document::element word_ele{tokenView["wordId"]};
-                            bsoncxx::document::element topic_ele{tokenView["topicId"]};
+                                bsoncxx::document::element word_ele = tokenView["wordId"];
+                                bsoncxx::document::element topic_ele = tokenView["topicId"];
 
-                            int32_t wordId = -1;
-                            int32_t topicId = -1;
+                                int32_t wordId = -1;
+                                int32_t topicId = -1;
 
-                            if (word_ele && word_ele.type() == bsoncxx::type::k_int32)
-                                wordId = observedWord.get_int32().value;
+                                if (word_ele && word_ele.type() == bsoncxx::type::k_int32)
+                                    wordId = word_ele.get_int32().value;
 
-                            if (topic_ele && topic_ele.type() == bsoncxx::type::k_int32)
-                                topicId = observedWord.get_int32().value;
+                                if (topic_ele && topic_ele.type() == bsoncxx::type::k_int32)
+                                    topicId = topic_ele.get_int32().value;
 
-                            if(wordId > 0 && topicId > 0)
-                                doc_tokens.push_back({ wordId, topicId });
-                            else
-                                Log::Fatal("[ERROR] word_id or/and topic_id not found in MongoDB, and is/are required for the LightLDA document buffer.");
-
+                                if(wordId > 0 && topicId > 0)
+                                {
+                                    std::cout << "word id = " << wordId << "  topicId" << wordId << std::endl;
+                                    doc_tokens.push_back({ wordId, topicId });
+                                }
+                                //else
+                                //    Log::Fatal("[ERROR] word_id or/and topic_id not found in MongoDB, and is/are required for the LightLDA document buffer.\n");
+                            }
 
                         }// end loop over words
 
@@ -275,6 +271,22 @@ namespace multiverso
 
                 has_read_ = false;
 
+            }
+
+            void CheckDBParameters()
+            {
+                // some checks...
+                if(MongoUri_.empty())
+                    Log::Fatal("[DataBlock] Mongo uri is not defined, program will now exit \n");
+
+                if(MongoDBName_.empty())
+                    Log::Fatal("[DataBlock] Mongo DataBase Name is not defined, program will now exit \n");
+
+                if(MongoCollectionName_.empty())
+                    Log::Fatal("[DataBlock] Mongo Collection Name is not defined, program will now exit \n");
+
+                if(!ClientToTrainingData_)
+                    Log::Fatal("[DataBlock] Mongo pool is not not valid, program will now exit \n");
             }
 
             //////////////////////////

@@ -11,8 +11,8 @@
 #include "InitMongoDB.h"
 #include "MongoHelper.h"
 
-int test1();
-int test2();
+
+
 
 struct Token
 {
@@ -21,11 +21,192 @@ struct Token
 };
 
 
-int main(int argc, char* argv[])
+int test1();
+int test2();
+int test3();
+
+
+
+
+typedef std::unique_ptr<mongocxx::pool> MongoPool_ptr;
+
+class mydbtest
 {
-    test2();
+    
+std::string MongoDBName_;
+            std::string MongoCollectionName_;
+            std::string MongoUri_;
+            int32_t doc_buf_idx_;
+            bool has_read_;
+            const int32_t kMaxDocLength = 10000000;
+            std::unique_ptr<mongocxx::pool> ClientToTrainingData_;
+
+public:
+    mydbtest()
+    {
+
+    }
+    virtual ~mydbtest()
+    {}
+    void CheckDBParameters()
+            {
+                // some checks...
+                if(MongoUri_.empty())
+                    std::cout<<"[DataBlock] Mongo uri is not defined, program will now exit \n";
+
+                if(MongoDBName_.empty())
+                    std::cout<<"[DataBlock] Mongo DataBase Name is not defined, program will now exit \n";
+
+                if(MongoCollectionName_.empty())
+                    std::cout<<"[DataBlock] Mongo Collection Name is not defined, program will now exit \n";
+
+                if(!ClientToTrainingData_)
+                    std::cout<<"[DataBlock] Mongo pool is not not valid, program will now exit \n";
+            }
+            void SetMongoParameters(const std::string& uri, const std::string& DBName, const std::string& collectionName)
+            {
+                MongoUri_ = uri;
+                MongoDBName_ = DBName;
+                MongoCollectionName_ = collectionName;
+
+                ClientToTrainingData_ = std::move(MongoPool_ptr(new mongocxx::pool(mongocxx::uri{uri})));
+            }
+void ReadTrainingData(int32_t block_idx, int64_t docId)
+            {
+                CheckDBParameters();
+
+                auto conn = ClientToTrainingData_->acquire();
+                auto trainingDataCollection = (*conn)[MongoDBName_][MongoCollectionName_];
+
+
+                // filter
+                auto filter = bsoncxx::builder::stream::document{}
+                        << "block_idx" << block_idx
+                        << "docId" << docId
+                        << bsoncxx::builder::stream::finalize;
+                mongocxx::options::find opts{};
+                opts.no_cursor_timeout(true);
+
+                std::cout << "trainingDataCollection size = " << trainingDataCollection.count({filter.view()});
+
+                auto trainingCursor = trainingDataCollection.find(filter.view(), opts);
+
+                std::cout << "-----------------> OK 1" << std::endl;
+                for (auto &&doc : trainingCursor)
+                {
+                    bsoncxx::document::element ele_blockid;
+                    ele_blockid = doc["block_idx"];
+                    std::cout << "-----------------> ele_blockid.get_int32(); " 
+                    << ele_blockid.get_int32() << std::endl;
+                    ele_blockid = doc["docId"];
+                    std::cout << "-----------------> ele_blockid.get_int64(); " 
+                    << ele_blockid.get_int64() << std::endl;
+
+
+                    bsoncxx::document::element ele_id;
+                    std::cout << "-----------------> OK 2" << std::endl;
+                    
+                    if ((ele_id = doc["tokenIds"]) && ele_id.type() == type::k_array)
+                    {
+                        bsoncxx::array::view observedWordArray{ele_id.get_array().value};
+                        // loop over visited items (array)
+
+                        int doc_token_count = 0;
+                        std::vector<Token> doc_tokens;
+
+                        std::cout << "-----------------> OK 3" << std::endl;
+                        //bsoncxx::document::view tokenView;
+                        for(const auto& observedWord : observedWordArray)
+                        {
+                            if(observedWord.type() == bsoncxx::type::k_document)
+                            {
+                            //if (doc_token_count >= kMaxDocLength) break;
+
+
+                            bsoncxx::document::view tokenView = observedWord.get_document().view();
+                            bsoncxx::document::view subdoc = observedWord.get_document().value;
+
+                            bsoncxx::document::element word_ele = subdoc["wordId"];//{tokenView["wordId"]};
+                            bsoncxx::document::element topic_ele = subdoc["topicId"];//{tokenView["topicId"]};
+
+                            int32_t wordId = -1;
+                            int32_t topicId = -1;
+
+std::cout << "-----------------> OK 3-a" << std::endl;
+
+                            if (word_ele)
+std::cout << "-----------------> if (word_ele)" << std::endl;
+std::cout << "-----------------> OK 3-b" << std::endl;
+
+
+                            if ( word_ele.type() == bsoncxx::type::k_int32)
+std::cout << "-----------------> if ( word_ele.type() == bsoncxx::type::k_int32)" << std::endl;
+std::cout << "-----------------> OK 3-c" << std::endl;
+
+
+std::cout << "-----------------> OK 4-a" << std::endl;
+                            if (word_ele && word_ele.type() == bsoncxx::type::k_int32)
+                            {
+
+                                wordId = word_ele.get_int32();
+                            }
+std::cout << "-----------------> OK 4-b" << std::endl;
+
+                            if (topic_ele && topic_ele.type() == bsoncxx::type::k_int32)
+                                topicId = topic_ele.get_int32();
+std::cout << "-----------------> OK 4-c" << std::endl;
+
+                            if(wordId > 0 && topicId > 0)
+                                doc_tokens.push_back({ wordId, topicId });
+                            //else
+                            //    Log::Fatal("[ERROR] word_id or/and topic_id not found in MongoDB, and is/are required for the LightLDA document buffer.");
+
+std::cout << "-----------------> OK 5 wordid=" << wordId << std::endl;
+                            }
+                        }// end loop over words
+
+                    }
+                }// end loop over doc
 }
 
+
+
+
+
+};
+
+
+#include <mongocxx/exception/exception.hpp>
+#include <bsoncxx/exception/exception.hpp>
+
+
+int main(int argc, char* argv[])
+{
+    try{
+    test3();
+    }
+    catch(mongocxx::exception& e)
+    {
+        std::cout << "[mongocxx::exception] exception caught: " << e.what();
+    }
+    catch(bsoncxx::exception& e)
+    {
+        std::cout << "[bsoncxx::exception] exception caught: " << e.what();
+    }
+    catch(std::exception& e) {
+        std::cout << "[std::exception] exception caught: " << e.what();
+    }
+}
+
+
+
+int test3()
+{
+    std::string uri("mongodb://localhost:27017");
+    mydbtest db;
+    db.SetMongoParameters(uri,"test2","trainingDataCollection");
+    db.ReadTrainingData(1,0);
+}
 
 int test2()
 {
@@ -37,18 +218,22 @@ int test2()
     InitMongoDB database;
     database.SetVocabDBParameters(uri,"test","vocabCollection");
 
-    database.SetTrainingDataDBParameters(uri,"test","trainingDataCollection");
+    database.SetTrainingDataDBParameters(uri,"test2","trainingDataCollection");
     //const int32_t kMaxDocLength = 8192;
 
-
-    std::vector<Token> doc_tokens;
-    for(int i=5;i<8;i++)
+    int offset = 0;
+    for(int64_t docid = 0;docid<3;docid++)
     {
-        doc_tokens.push_back({i+660,1});
+        std::vector<Token> doc_tokens;
 
+        for(int i=5;i<8;i++)
+        {
+            doc_tokens.push_back({i+offset,1});
+
+        }
+        database.WriteTrainingData(1, docid, doc_tokens);
+        offset+=100;
     }
-    database.WriteTrainingData(1, 1, doc_tokens);
-
 
 
     return 0;
@@ -164,3 +349,5 @@ int test1() {
 
     return 0;
 }
+
+
