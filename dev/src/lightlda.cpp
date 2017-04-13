@@ -83,9 +83,13 @@ namespace multiverso { namespace lightlda
             
             DumpDocTopic();
 
+            std::cout << "dumpdoctopic done" << std::endl;
             delete data_stream;
+            std::cout << "delete data_stream done" << std::endl;
             delete barrier;
+            std::cout << "delete barrier done" << std::endl;
             delete alias_table;
+            std::cout << "delete alias_table done" << std::endl;
         }
     private:
         static void Train()
@@ -145,18 +149,18 @@ namespace multiverso { namespace lightlda
                 int32_t num_slice = meta.local_vocab(block).num_slice();
                 for (int32_t slice = 0; slice < num_slice; ++slice)
                 {
-                    //std::cout << "slice = " << slice << std::endl;
+                    std::cout << "slice = " << slice << std::endl;
                     for (int32_t i = 0; i < data_block.Size(); ++i)
                     {
-                        //std::cout << "data_block i = " << i << std::endl;
+                        std::cout << "data_block i = " << i << std::endl;
                         Document* doc = data_block.GetOneDoc(i);
-                        //std::cout << "got one doc "  << std::endl;
+                        std::cout << "got one doc "  << std::endl;
                         int32_t& cursor = doc->Cursor();
-                        //std::cout << "got cursor "  << std::endl;
+                        std::cout << "got cursor "  << std::endl;
                         if (slice == 0) cursor = 0;
-                        //std::cout << "got test on cursor "  << std::endl;
+                        std::cout << "got test on cursor "  << std::endl;
                         int32_t last_word = meta.local_vocab(block).LastWord(slice);
-                        //std::cout << "got last word "  << std::endl;
+                        std::cout << "got last word "  << std::endl;
                         for (; cursor < doc->Size(); ++cursor)
                         {
                             if (doc->Word(cursor) > last_word) break;
@@ -169,7 +173,7 @@ namespace multiverso { namespace lightlda
                             Multiverso::AddToServer<int64_t>(kSummaryRow,
                                 0, doc->Topic(cursor), 1);
                         }
-                        //std::cout << "cursor loop done "  << std::endl;
+                        std::cout << "cursor loop done "  << std::endl;
                     }
                     Multiverso::Flush();
                 }

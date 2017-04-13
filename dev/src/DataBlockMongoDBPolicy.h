@@ -127,16 +127,21 @@ namespace multiverso
                     int32_t* docBuffer_ptr = nullptr;
                     int64_t offsetStart = DataBlockInterface_->offset_buffer_[docIdx];
                     int64_t offsetEnd = DataBlockInterface_->offset_buffer_[docIdx + 1];
+                    std::cout << "docID=" << docIdx << " offset start " << offsetStart << " offset end " << offsetEnd << std::endl;
 
                     docBuffer_ptr = DataBlockInterface_->documents_buffer_ + offsetStart;
                     std::vector<Token> doc_tokens;
-                    for(int64_t tokenIdx(offsetStart); tokenIdx < offsetEnd; tokenIdx++)
+                    for(int32_t tokenIdx(offsetStart); tokenIdx < offsetEnd; tokenIdx++)
                     {
                         int32_t wordId = *(docBuffer_ptr + 1 + tokenIdx * 2);
                         int32_t topicId = *(docBuffer_ptr + 2 + tokenIdx * 2);
                         doc_tokens.push_back({wordId,topicId});
                         //WriteTrainingData(docIdx, wordId, topicId);
                     }
+                    std::sort(doc_tokens.begin(), doc_tokens.end(), [](const Token& token1, const Token& token2)
+                    {
+                        return token1.word_id < token2.word_id;
+                    });
                     //WriteTrainingData(int64_t docId, int32_t wordId, int32_t topicId)
                     WriteTrainingData(block_idx, docIdx, doc_tokens);
                 }
@@ -223,6 +228,7 @@ namespace multiverso
                             }
 
                         }// end loop over words
+                        std::cout << "array loop done  docId="  << docId << std::endl;
 
                         //db array already sorted at writting side
                         //*
@@ -232,17 +238,24 @@ namespace multiverso
                         });
                         //*/
 
-                        
+                        std::cout << " sort doc_tokens done docId="  << docId << std::endl;
                         DataBlockInterface_->documents_buffer_[doc_buf_idx_++] = 0;
+                        std::cout << " init documents_buffer_ done docId="  << docId
+                                  << " doc_buf_idx_ = " << doc_buf_idx_
+                                  << " doc_buf_idx_ = " << doc_buf_idx_
+                                  << std::endl;
+
                         //*
                         for (auto& token : doc_tokens)
                         {
                             DataBlockInterface_->documents_buffer_[doc_buf_idx_++] = token.word_id;
                             DataBlockInterface_->documents_buffer_[doc_buf_idx_++] = token.topic_id;
                         }//*/
-                        
+
+                        std::cout << " fill documents_buffer_ done  docId="  << docId << std::endl;
                         //DataBlockInterface_->offset_buffer_[docId + 1] = DataBlockInterface_->offset_buffer_[j] + doc_buf_idx_;
                         DataBlockInterface_->offset_buffer_[docId + 1] = doc_buf_idx_;
+                        std::cout << " fill offset_buffer_ done docId="  << docId << std::endl;
                     }
                 }// end loop over doc
 
@@ -288,6 +301,7 @@ namespace multiverso
                 // update
                 bsoncxx::document::value fUpdate = doc << bsoncxx::builder::stream::finalize;
                 trainingDataCollection.update_one(filter.view(), std::move(fUpdate), updateOpts);
+
 
                 has_read_ = false;
 
