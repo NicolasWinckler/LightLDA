@@ -169,7 +169,7 @@ namespace multiverso { namespace lightlda
                             Multiverso::AddToServer<int64_t>(kSummaryRow,
                                 0, doc->Topic(cursor), 1);
                         }
-                        std::cout << "cursor loop done "  << std::endl;
+                        //std::cout << "cursor loop done "  << std::endl;
                     }
                     Multiverso::Flush();
                 }
@@ -191,6 +191,10 @@ namespace multiverso { namespace lightlda
             auto doc_topicCollection = (*conn)["test"]["docTopicModel"];
             mongocxx::options::update updateOpts;
             updateOpts.upsert(true);
+            bsoncxx::builder::stream::document index_builder;
+            index_builder << "block_idx" << 1 << "docId" << 1;
+            doc_topicCollection.create_index(index_builder.view(), {});
+
             
             Row<int32_t> doc_topic_counter(0, Format::Sparse, kMaxDocLength); 
             for (int32_t block = 0; block < Config::num_blocks; ++block)
@@ -203,7 +207,7 @@ namespace multiverso { namespace lightlda
                 {
                     auto filter = bsoncxx::builder::stream::document{}
                             << "block_idx" << block
-                            << "doc_topic.idx" << doc_i
+                            << "docId" << doc_i
                             << bsoncxx::builder::stream::finalize;
                     Document* doc = data_block.GetOneDoc(doc_i);
                     doc_topic_counter.Clear();
@@ -212,11 +216,9 @@ namespace multiverso { namespace lightlda
                     Row<int32_t>::iterator iter = doc_topic_counter.Iterator();
                     bsoncxx::builder::stream::document ucpt_doc{};//ucpt = unormalized cpt
 
-                    auto subdocstream = ucpt_doc 
+                    auto subdocstream = ucpt_doc << "$set" << bsoncxx::builder::stream::open_document
                                 << "block_idx" << block
-                                << "doc_topic"
-                                << bsoncxx::builder::stream::open_document
-                                << "idx" <<  doc_i
+                                << "docId" <<  doc_i
                                 << "ucpt" << bsoncxx::builder::stream::open_array;
 
                     while (iter.HasNext())
@@ -228,7 +230,8 @@ namespace multiverso { namespace lightlda
                                 << bsoncxx::builder::stream::close_document;
                         iter.Next();
                     }
-                    subdocstream << bsoncxx::builder::stream::close_array << bsoncxx::builder::stream::close_document;
+                    subdocstream << bsoncxx::builder::stream::close_array 
+                                 << bsoncxx::builder::stream::close_document;
                     bsoncxx::document::value fUpdate = ucpt_doc << bsoncxx::builder::stream::finalize;
                     doc_topicCollection.update_one(filter.view(), std::move(fUpdate), updateOpts);
                 }
