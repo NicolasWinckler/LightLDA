@@ -12,7 +12,8 @@
 #include <multiverso/log.h>
 #include <multiverso/row.h>
 
-
+#include <chrono>
+#include <ctime>
 #include <bsoncxx/json.hpp>
 
 #include <mongocxx/client.hpp>
@@ -36,43 +37,34 @@ namespace multiverso { namespace lightlda
         {
             Config::Init(argc, argv);
             mongo_uri_ = Config::mongo_uri;
-            std::cout << "ok1\n";
             AliasTable* alias_table = new AliasTable();
             Barrier* barrier = new Barrier(Config::num_local_workers);
-            std::cout << "ok1-a\n";
             meta.SetMongoParameters(mongo_uri_,"test","vocabCollection");
-            std::cout << "ok1-b\n";
             meta.Init();
-            std::cout << "ok1-c\n";
             std::vector<TrainerBase*> trainers;
             for (int32_t i = 0; i < Config::num_local_workers; ++i)
             {
                 Trainer* trainer = new Trainer(alias_table, barrier, &meta);
                 trainers.push_back(trainer);
             }
-            std::cout << "ok2\n";
 
             ParamLoader* param_loader = new ParamLoader();
             multiverso::Config config;
             config.num_servers = Config::num_servers;
             config.num_aggregator = Config::num_aggregator;
             config.server_endpoint_file = Config::server_file;
+            config.output_dir = Config::output_dir;
 
-            std::cout << "ok3\n";
 
             Multiverso::Init(trainers, param_loader, config, &argc, &argv);
 
-            std::cout << "ok4\n";
             Log::ResetLogFile("LightLDA."
                 + std::to_string(clock()) + ".log");
 
             data_stream = CreateDataStream();
-            std::cout << "ok5\n";
             InitMultiverso();
-            std::cout << "ok6\n";
             Train();
 
-            std::cout << "ok7\n";
             Multiverso::Close();
             
             for (auto& trainer : trainers)
@@ -83,13 +75,9 @@ namespace multiverso { namespace lightlda
             
             DumpDocTopic();
 
-            std::cout << "dumpdoctopic done" << std::endl;
             delete data_stream;
-            std::cout << "delete data_stream done" << std::endl;
             delete barrier;
-            std::cout << "delete barrier done" << std::endl;
             delete alias_table;
-            std::cout << "delete alias_table done" << std::endl;
         }
     private:
         static void Train()
@@ -127,15 +115,10 @@ namespace multiverso { namespace lightlda
         static void InitMultiverso()
         {
             Multiverso::BeginConfig();
-            std::cout << "Multiverso::BeginConfig -> done" << std::endl;
             CreateTable();
-            std::cout << "CreateTable() -> done" << std::endl;
             ConfigTable();
-            std::cout << "ConfigTable() -> done" << std::endl;
             Initialize();
-            std::cout << "Initialize() -> done" << std::endl;
             Multiverso::EndConfig();
-            std::cout << "Multiverso::EndConfig() -> done" << std::endl;
         }
 
         static void Initialize()
@@ -143,24 +126,17 @@ namespace multiverso { namespace lightlda
             xorshift_rng rng;
             for (int32_t block = 0; block < Config::num_blocks; ++block)
             {
-                //std::cout << "block = " << block << std::endl;
                 data_stream->BeforeDataAccess();
                 DataBlock& data_block = data_stream->CurrDataBlock();
                 int32_t num_slice = meta.local_vocab(block).num_slice();
                 for (int32_t slice = 0; slice < num_slice; ++slice)
                 {
-                    std::cout << "slice = " << slice << std::endl;
                     for (int32_t i = 0; i < data_block.Size(); ++i)
                     {
-                        std::cout << "data_block i = " << i << std::endl;
                         Document* doc = data_block.GetOneDoc(i);
-                        std::cout << "got one doc "  << std::endl;
                         int32_t& cursor = doc->Cursor();
-                        std::cout << "got cursor "  << std::endl;
                         if (slice == 0) cursor = 0;
-                        std::cout << "got test on cursor "  << std::endl;
                         int32_t last_word = meta.local_vocab(block).LastWord(slice);
-                        std::cout << "got last word "  << std::endl;
                         for (; cursor < doc->Size(); ++cursor)
                         {
                             if (doc->Word(cursor) > last_word) break;
@@ -173,7 +149,6 @@ namespace multiverso { namespace lightlda
                             Multiverso::AddToServer<int64_t>(kSummaryRow,
                                 0, doc->Topic(cursor), 1);
                         }
-                        std::cout << "cursor loop done "  << std::endl;
                     }
                     Multiverso::Flush();
                 }
@@ -184,6 +159,8 @@ namespace multiverso { namespace lightlda
         static void DumpDocTopic()
         {
             DumpDocTopicToMongoDB();
+
+            //DumpDocTopicToFile();
 
 
         }
@@ -245,10 +222,11 @@ namespace multiverso { namespace lightlda
 
         static void DumpDocTopicToFile()
         {
+            std::string outputdir = Config::output_dir;
             Row<int32_t> doc_topic_counter(0, Format::Sparse, kMaxDocLength);
             for (int32_t block = 0; block < Config::num_blocks; ++block)
             {
-                std::ofstream fout("doc_topic." + std::to_string(block));
+                std::ofstream fout(outputdir + "/doc_topic." + std::to_string(block));
                 data_stream->BeforeDataAccess();
                 DataBlock& data_block = data_stream->CurrDataBlock();
                 for (int i = 0; i < data_block.Size(); ++i)
@@ -260,7 +238,8 @@ namespace multiverso { namespace lightlda
                     Row<int32_t>::iterator iter = doc_topic_counter.Iterator();
                     while (iter.HasNext())
                     {
-                        fout << " " << iter.Key() << ":" << iter.Value();
+                        fout << " " << iter.Key()
+                             << ":" << iter.Value();
                         iter.Next();
                     }
                     fout << std::endl;
@@ -340,9 +319,16 @@ namespace multiverso { namespace lightlda
 
 int main(int argc, char** argv)
 {
-    try
-    {
-        multiverso::lightlda::LightLDA::Run(argc, argv);
+    try {
+        std::chrono::time_point<std::chrono::system_clock> start, end;
+        start = std::chrono::system_clock::now();
+        {
+            multiverso::lightlda::LightLDA::Run(argc, argv);
+        }
+        end = std::chrono::system_clock::now();
+        std::chrono::duration<double> elapsed_time = end-start;
+        //std::time_t end_time = std::chrono::system_clock::to_time_t(end);
+        std::cout << "elapsed time for LightLDA computation: " << elapsed_time.count() << "s\n";
     }
     catch(mongocxx::exception& e)
     {

@@ -138,7 +138,6 @@ namespace multiverso
 
                         local_vocab.size_ = vocsize;
 
-                        std::cout << "local_vocab.size_ = " << local_vocab.size_ << std::endl;
                         if(local_vocab.size_ > Config::num_vocabs)
                             Log::Fatal("Not enough allocated memory for the term-frequency buffer. Increase Config::num_vocabs. Program will now exit \n");
 
@@ -171,22 +170,15 @@ namespace multiverso
                                         if (vocabId && vocabId.type() == bsoncxx::type::k_int32)
                                         {
                                             int32_t voc_id = vocabId.get_int32().value;
-
-                                            //std::cout << "Meta::ok1 voc_id=" << voc_id << "\n";
                                             local_vocab.vocabs_[vocDBIdx] = voc_id;
-
-                                            //std::cout << "Meta::ok2 voc_id=" << voc_id << "\n";
                                             vocDBIdx++;
                                         }
-
                                     }
                                 }
 
-                                std::cout << "Meta::vocab.global_tf\n";
                                 bsoncxx::document::element globtf_ele;
                                 if((globtf_ele = vocabBlock["vocab"]["global_tf"] ))
                                 {
-                                    std::cout << "Meta::vocab.global_tf = OK \n";
                                     vocDBIdx = 0;
                                     bsoncxx::array::view globtf_array{globtf_ele.get_array().value};
                                     for(const auto& globtf : globtf_array)
@@ -200,7 +192,6 @@ namespace multiverso
                                     }
                                 }
 
-                                std::cout << "Meta::vocab.loacal_tf\n";
                                 bsoncxx::document::element loctf_ele;
                                 if((loctf_ele = vocabBlock["vocab"]["loacal_tf"] ))
                                 {
@@ -214,13 +205,10 @@ namespace multiverso
                                             local_tf_buffer[vocDBIdx] = loc_tf;
                                             vocDBIdx++;
                                         }
-
                                     }
                                 }
                             }
                         }
-
-                        std::cout << "Meta::outside cursor loop\n";
 
                         for (int32_t v = 0; v < local_vocab.size_; ++v)
                         {

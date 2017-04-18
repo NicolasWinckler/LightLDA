@@ -74,6 +74,9 @@ namespace multiverso
                 return has_read_;
             }
 
+            void SetMongoParameters(const std::string& uri, const std::string& DBName, const std::string& collectionName)
+            {}
+
 
 
             //////////////////////////

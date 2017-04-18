@@ -397,6 +397,7 @@ int main(int argc, char* argv[])
         printf("Usage: dump_binary <libsvm_input> <word_dict_file_input> <binary_output_dir> <output_file_offset>\n");
         exit(1);
     }
+    bool dumpToFileToo = true;// in case for debugging
 
     std::string libsvm_file_name(argv[1]);
     std::string word_dict_file_name(argv[2]);
@@ -446,26 +447,32 @@ int main(int argc, char* argv[])
         std::cout << "Fails to open file: " << libsvm_file_name << std::endl;
         exit(1);
     }
-    if (!block_file.open(block_name))
-    {
-        std::cout << "Fails to create file: " << block_name << std::endl;
-        exit(1);
-    }
+
+    if(dumpToFileToo)
+        if (!block_file.open(block_name))
+        {
+            std::cout << "Fails to create file: " << block_name << std::endl;
+            exit(1);
+        }
     std::ofstream vocab_file(vocab_name, std::ios::out | std::ios::binary);
     std::ofstream txt_vocab_file(txt_vocab_name, std::ios::out);
 
-    if (!vocab_file.good())
+    if(dumpToFileToo)
     {
-        std::cout << "Fails to create file: " << vocab_name << std::endl;
-        exit(1);
-    }
-    if (!txt_vocab_file.good())
-    {
-        std::cout << "Fails to create file: " << txt_vocab_name << std::endl;
-        exit(1);
-    }
+        if (!vocab_file.good())
+        {
+            std::cout << "Fails to create file: " << vocab_name << std::endl;
+            exit(1);
+        }
 
-    block_file.write_empty_header(offset_buf, doc_num);
+        if (!txt_vocab_file.good())
+        {
+            std::cout << "Fails to create file: " << txt_vocab_name << std::endl;
+            exit(1);
+        }
+
+        block_file.write_empty_header(offset_buf, doc_num);
+    }
 
     int64_t block_token_num = 0;
     std::string str_line;
@@ -550,29 +557,23 @@ int main(int argc, char* argv[])
             doc_buf[doc_buf_idx++] = token.topic_id;
         }
 
-        block_file.write_doc(doc_buf, doc_buf_idx);
+        if(dumpToFileToo)
+            block_file.write_doc(doc_buf, doc_buf_idx);
         offset_buf[j + 1] = offset_buf[j] + doc_buf_idx;
         
-        database.WriteTrainingData(block_idx, j, doc_tokens,offset_buf[j]);
+        database.WriteTrainingData(block_idx, j, doc_tokens);
     }//end loop doc
 
-    block_file.write_real_header(offset_buf, doc_num);
+    if(dumpToFileToo)
+        block_file.write_real_header(offset_buf, doc_num);
 
     int32_t vocab_size = 0;
 
-    vocab_file.write(reinterpret_cast<char*>(&vocab_size), sizeof(int32_t));
+    if(dumpToFileToo)
+        vocab_file.write(reinterpret_cast<char*>(&vocab_size), sizeof(int32_t));
 
     int32_t non_zero_count = 0;
     // write vocab
-
-    /*for (int i = 0; i < word_num; ++i)
-    {
-        if (local_tf_map[i] > 0)
-        {
-            non_zero_count++;
-            vocab_file.write(reinterpret_cast<char*> (&i), sizeof(int32_t));
-        }
-    }*/
 
     for(auto& p : global_tf_map)
     {
@@ -581,78 +582,63 @@ int main(int argc, char* argv[])
             {
                 int32_t i = p.first;
                 non_zero_count++;
-                vocab_file.write(reinterpret_cast<char*> (&i), sizeof(int32_t));
+                if(dumpToFileToo)
+                    vocab_file.write(reinterpret_cast<char*> (&i), sizeof(int32_t));
             }
     }
     std::cout << "The number of tokens in the output block is: " << block_token_num << std::endl;
     std::cout << "Local vocab_size for the output block is: " << non_zero_count << std::endl;
 
 
-    // write global tf
-    /*for (int i = 0; i < word_num; ++i)
+    if(dumpToFileToo)
     {
-        if (local_tf_map[i] > 0)
-        {
-            vocab_file.write(reinterpret_cast<char*> (&global_tf_map[i]), sizeof(int32_t));
-        }
-    }*/
-    for(auto& p : global_tf_map)
-    {
-        if(local_tf_map.count(p.first))
-            if(local_tf_map.at(p.first) > 0)
-            {
-                vocab_file.write(reinterpret_cast<char*> (&p.second), sizeof(int32_t));
-            }
-    }
-    // write local tf
-    /*for (int i = 0; i < word_num; ++i)
-    {
-        if (local_tf_map[i] > 0)
-        {
-            // code below increase size by adding new key values
-            vocab_file.write(reinterpret_cast<char*> (&local_tf_map[i]), sizeof(int32_t));
-        }
-    }*/
-    for(auto& p : global_tf_map)
-    {
-        if(local_tf_map.count(p.first))
-            if(local_tf_map.at(p.first) > 0)
-            {
-                vocab_file.write(reinterpret_cast<char*> (&local_tf_map.at(p.first)), sizeof(int32_t));
-            }
-    }
-    vocab_file.seekp(0);
-    vocab_file.write(reinterpret_cast<char*>(&non_zero_count), sizeof(int32_t));
-    vocab_file.close();
+        // write global tf
 
+        for(auto& p : global_tf_map)
+        {
+            if(local_tf_map.count(p.first))
+                if(local_tf_map.at(p.first) > 0)
+                {
+                    vocab_file.write(reinterpret_cast<char*> (&p.second), sizeof(int32_t));
+                }
+        }
+        // write local tf
 
+        for(auto& p : global_tf_map)
+        {
+            if(local_tf_map.count(p.first))
+                if(local_tf_map.at(p.first) > 0)
+                {
+                    vocab_file.write(reinterpret_cast<char*> (&local_tf_map.at(p.first)), sizeof(int32_t));
+                }
+        }
+        vocab_file.seekp(0);
+        vocab_file.write(reinterpret_cast<char*>(&non_zero_count), sizeof(int32_t));
+        vocab_file.close();
+
+        // write vocab summary to txt file
+        txt_vocab_file << non_zero_count << std::endl;
+        for(auto& p : global_tf_map)
+        {
+            if(local_tf_map.count(p.first))
+                if(local_tf_map.at(p.first) > 0)
+                {
+                    txt_vocab_file << p.first << "\t" << p.second << "\t" << local_tf_map.at(p.first) << std::endl;
+                }
+        }
+        txt_vocab_file.close();
+    }
     database.WriteVocab(block_idx, global_tf_map, local_tf_map, non_zero_count);
 
 
-    txt_vocab_file << non_zero_count << std::endl;
-    /*for (int i = 0; i < word_num; ++i)
-    {
-        if (local_tf_map[i] > 0)
-        {
-            txt_vocab_file << i << "\t" << global_tf_map[i] << "\t" << local_tf_map[i] << std::endl;
-        }
-    }*/
-    for(auto& p : global_tf_map)
-    {
-        if(local_tf_map.count(p.first))
-            if(local_tf_map.at(p.first) > 0)
-            {
-                txt_vocab_file << p.first << "\t" << p.second << "\t" << local_tf_map.at(p.first) << std::endl;
-            }
-    }
-    txt_vocab_file.close();
 
     double dump_end = get_time();
     std::cout << "Elapsed seconds for dump blocks: " << (dump_end - dump_start) << std::endl;
 
     // close file and release resource
     libsvm_file.close();
-    block_file.close();
+    if(dumpToFileToo)
+        block_file.close();
 
     delete[]offset_buf;
     delete[]doc_buf;
