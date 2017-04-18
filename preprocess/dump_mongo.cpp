@@ -392,7 +392,7 @@ void load_global_tf(std::map<int32_t, int32_t>& global_tf_map,
 
 int main(int argc, char* argv[])
 {
-    if (argc != 6)
+    if (argc != 7)
     {
         printf("Usage: dump_binary <libsvm_input> <word_dict_file_input> <binary_output_dir> <output_file_offset>\n");
         exit(1);
@@ -403,14 +403,15 @@ int main(int argc, char* argv[])
     std::string output_dir(argv[3]);
     int32_t output_offset = atoi(argv[4]);
     std::string uri(argv[5]);
+    std::string dbName(argv[6]);
     int32_t block_idx(output_offset);
 
     //uri="mongodb://localhost:27017";
 
     InitMongoDB database;
-    database.SetVocabDBParameters(uri,"test","vocabCollection");
+    database.SetVocabDBParameters(uri,dbName,"vocabCollection");
 
-    database.SetTrainingDataDBParameters(uri,"test","trainingDataCollection");
+    database.SetTrainingDataDBParameters(uri,dbName,"trainingDataCollection");
     const int32_t kMaxDocLength = 8192;
 
     // 1. count how many documents in the data set
@@ -430,7 +431,7 @@ int main(int argc, char* argv[])
 
     // 3. transform the libsvm -> binary block
     int64_t* offset_buf = new int64_t[doc_num + 1];
-    int32_t *doc_buf = new int32_t[kMaxDocLength * 2 + 1];
+    int32_t* doc_buf = new int32_t[kMaxDocLength * 2 + 1];
 
     std::string block_name = output_dir + "/block." + std::to_string(output_offset);
     std::string vocab_name = output_dir + "/vocab." + std::to_string(output_offset);
@@ -541,7 +542,7 @@ int main(int argc, char* argv[])
 
 
 
-        database.WriteTrainingData(block_idx, j, doc_tokens);
+        
 
         for (auto& token : doc_tokens)
         {
@@ -551,7 +552,9 @@ int main(int argc, char* argv[])
 
         block_file.write_doc(doc_buf, doc_buf_idx);
         offset_buf[j + 1] = offset_buf[j] + doc_buf_idx;
-    }
+        
+        database.WriteTrainingData(block_idx, j, doc_tokens,offset_buf[j]);
+    }//end loop doc
 
     block_file.write_real_header(offset_buf, doc_num);
 

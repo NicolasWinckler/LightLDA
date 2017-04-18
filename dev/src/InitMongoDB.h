@@ -92,7 +92,7 @@ public:
         ClientToVocab_ = std::move(MongoPool_ptr(new mongocxx::pool(mongocxx::uri{VocabMongoUri_})));
     }
 
-    void WriteTrainingData(int32_t block_idx, int64_t docId, std::vector<Token>& doc_tokens)
+    void WriteTrainingData(int32_t block_idx, int64_t docId, std::vector<Token>& doc_tokens, int64_t offset=0)
     {
         auto conn = ClientToTrainingData_->acquire();
         //auto recProcCollection = (*conn)[s_RecProcDB][s_RecProcTrainCollection];
@@ -118,15 +118,16 @@ public:
         doc << "$set" << bsoncxx::builder::stream::open_document
                 << "block_idx" << block_idx
                 << "docId" << docId
+                << "offset" << offset
                 << bsoncxx::builder::stream::close_document
                 << "$push"  << bsoncxx::builder::stream::open_document
             << "tokenIds" << bsoncxx::builder::stream::open_document
             << "$each"  << bsoncxx::builder::stream::open_array
             << bsoncxx::builder::concatenate(token_array.view())
             << bsoncxx::builder::stream::close_array
-            << "$sort" << bsoncxx::builder::stream::open_document
-            << "wordId" << 1
-            << bsoncxx::builder::stream::close_document
+            //<< "$sort" << bsoncxx::builder::stream::open_document
+            //<< "wordId" << 1
+            //<< bsoncxx::builder::stream::close_document
             << "$slice" << -kMaxDocLength
             << bsoncxx::builder::stream::close_document
             << bsoncxx::builder::stream::close_document;

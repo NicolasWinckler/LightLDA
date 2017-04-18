@@ -124,12 +124,18 @@ namespace multiverso
                 //WriteTrainingData();
                 for(int64_t docIdx(0); docIdx<DataBlockInterface_->num_document_; docIdx++)
                 {
+                    
                     int32_t* docBuffer_ptr = nullptr;
                     int64_t offsetStart = DataBlockInterface_->offset_buffer_[docIdx];
                     int64_t offsetEnd = DataBlockInterface_->offset_buffer_[docIdx + 1];
-                    std::cout << "docID=" << docIdx << " offset start " << offsetStart << " offset end " << offsetEnd << std::endl;
-
-                    docBuffer_ptr = DataBlockInterface_->documents_buffer_ + offsetStart;
+                    std::cout   << "docID=" << docIdx 
+                                << " offset start " << offsetStart 
+                                << " offset end " << offsetEnd 
+                                << " offset start db " << m_offset.at(docIdx)
+                                << " (end-start)/2" << (offsetEnd-offsetStart)/2
+                                << std::endl;
+/*
+                    docBuffer_ptr = DataBlockInterface_->documents_buffer_;
                     std::vector<Token> doc_tokens;
                     for(int32_t tokenIdx(offsetStart); tokenIdx < offsetEnd; tokenIdx++)
                     {
@@ -138,11 +144,29 @@ namespace multiverso
                         doc_tokens.push_back({wordId,topicId});
                         //WriteTrainingData(docIdx, wordId, topicId);
                     }
+
                     std::sort(doc_tokens.begin(), doc_tokens.end(), [](const Token& token1, const Token& token2)
                     {
                         return token1.word_id < token2.word_id;
                     });
+                    */
+                    std::vector<Token> doc_tokens;
                     //WriteTrainingData(int64_t docId, int32_t wordId, int32_t topicId)
+                    
+                    int32_t& cursor = DataBlockInterface_->documents_.at(docIdx)->Cursor();
+                    std::cout << "docID=" << docIdx 
+                                << " Got cursor " << cursor
+                                << " with size " << DataBlockInterface_->documents_.at(docIdx)->Size()
+                                << " offset+cursor " << (offsetStart+cursor)
+                                << std::endl;
+                    for (cursor=0; cursor < DataBlockInterface_->documents_.at(docIdx)->Size(); ++cursor)
+                    {
+                        int32_t wordId = DataBlockInterface_->documents_.at(docIdx)->Word(cursor);
+                        int32_t topicId = DataBlockInterface_->documents_.at(docIdx)->Topic(cursor);
+                        doc_tokens.push_back({wordId,topicId});
+
+                    }
+                    std::cout << "fill doc_tokens done with size " << doc_tokens.size() << std::endl;
                     WriteTrainingData(block_idx, docIdx, doc_tokens);
                 }
                 has_read_ = false;
@@ -178,7 +202,10 @@ namespace multiverso
                         << "docId" << docId
                         << bsoncxx::builder::stream::finalize;
                 mongocxx::options::find opts{};
-                opts.projection(bsoncxx::builder::stream::document{} << "tokenIds" << 1 << bsoncxx::builder::stream::finalize);
+                opts.projection(bsoncxx::builder::stream::document{} 
+                    << "offset" << 1
+                    << "tokenIds" << 1 
+                    << bsoncxx::builder::stream::finalize);
                 opts.no_cursor_timeout(true);
 
                 auto trainingCursor = trainingDataCollection.find(filter.view(), opts);
@@ -186,6 +213,7 @@ namespace multiverso
                 for (auto &&doc : trainingCursor)
                 {
                     bsoncxx::document::element ele_id;
+                    
                     
                     if ((ele_id = doc["tokenIds"]) )
                     {
@@ -228,7 +256,7 @@ namespace multiverso
                             }
 
                         }// end loop over words
-                        std::cout << "array loop done  docId="  << docId << std::endl;
+                        //std::cout << "array loop done  docId="  << docId << std::endl;
 
                         //db array already sorted at writting side
                         //*
@@ -238,13 +266,9 @@ namespace multiverso
                         });
                         //*/
 
-                        std::cout << " sort doc_tokens done docId="  << docId << std::endl;
-                        DataBlockInterface_->documents_buffer_[doc_buf_idx_++] = 0;
-                        std::cout << " init documents_buffer_ done docId="  << docId
-                                  << " doc_buf_idx_ = " << doc_buf_idx_
-                                  << " doc_buf_idx_ = " << doc_buf_idx_
-                                  << std::endl;
-
+                        //std::cout << " sort doc_tokens done docId="  << docId << std::endl;
+                        
+                         DataBlockInterface_->documents_buffer_[doc_buf_idx_++] = 0;
                         //*
                         for (auto& token : doc_tokens)
                         {
@@ -252,11 +276,26 @@ namespace multiverso
                             DataBlockInterface_->documents_buffer_[doc_buf_idx_++] = token.topic_id;
                         }//*/
 
-                        std::cout << " fill documents_buffer_ done  docId="  << docId << std::endl;
+                        //std::cout << " fill documents_buffer_ done  docId="  << docId << std::endl;
                         //DataBlockInterface_->offset_buffer_[docId + 1] = DataBlockInterface_->offset_buffer_[j] + doc_buf_idx_;
                         DataBlockInterface_->offset_buffer_[docId + 1] = doc_buf_idx_;
-                        std::cout << " fill offset_buffer_ done docId="  << docId << std::endl;
+                        //std::cout << " fill offset_buffer_ done docId="  << docId << std::endl;
                     }
+
+                    bsoncxx::document::element ele_offset;
+
+                    if((ele_offset=doc["offset"]))
+                    {
+                        int64_t dboffset;
+                        dboffset=ele_offset.get_int64().value;
+                        m_offset.push_back(dboffset);
+                        std::cout << " init documents_buffer_ done docId="  << docId
+                                  << " doc_buf_idx_ = " << doc_buf_idx_
+                                  << " offset db = " << dboffset
+                                  << std::endl;
+                    }
+                    
+                        
                 }// end loop over doc
 
 
@@ -289,18 +328,20 @@ namespace multiverso
                 bsoncxx::builder::stream::document doc{};
 
                 // code below ok when creating the collection for the first time,
-                doc << "$set" << bsoncxx::builder::stream::open_document
+                doc //<< "$set" << bsoncxx::builder::stream::open_document
                     << "block_idx" << block_idx
                     << "docId" << docId
                     << "tokenIds"
                     << bsoncxx::builder::stream::open_array
                     << bsoncxx::builder::concatenate(token_array.view())
                     << bsoncxx::builder::stream::close_array
-                    << bsoncxx::builder::stream::close_document;
+                    //<< bsoncxx::builder::stream::close_document
+                    ;
 
                 // update
                 bsoncxx::document::value fUpdate = doc << bsoncxx::builder::stream::finalize;
-                trainingDataCollection.update_one(filter.view(), std::move(fUpdate), updateOpts);
+                //trainingDataCollection.update_one(filter.view(), std::move(fUpdate), updateOpts);
+                trainingDataCollection.replace_one(filter.view(), std::move(fUpdate), updateOpts);
 
 
                 has_read_ = false;
@@ -335,6 +376,7 @@ namespace multiverso
             bool has_read_;
             const int32_t kMaxDocLength;
             std::unique_ptr<mongocxx::pool> ClientToTrainingData_;
+            std::vector<int64_t> m_offset;
         };
     } // namespace lightlda
 } // namespace multiverso
