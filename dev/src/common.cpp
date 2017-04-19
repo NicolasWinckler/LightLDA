@@ -22,6 +22,9 @@ namespace multiverso { namespace lightlda
     std::string Config::input_dir = "";
     std::string Config::output_dir = "";
     std::string Config::mongo_uri = "mongodb://localhost:27017";
+    std::string Config::mongo_DB = "test";
+    std::string Config::mongo_dataCollection = "trainingDataCollection";
+    std::string Config::mongo_vocabCollection = "vocabCollection";
     bool Config::warm_start = false;
     bool Config::inference = false;
     bool Config::out_of_core = false;
@@ -58,14 +61,18 @@ namespace multiverso { namespace lightlda
             if (strcmp(argv[i], "-input_dir") == 0) input_dir = std::string(argv[i + 1]);
             if (strcmp(argv[i], "-output_dir") == 0) output_dir = std::string(argv[i + 1]);
             if (strcmp(argv[i], "-server_file") == 0) server_file = std::string(argv[i + 1]);
-            if (strcmp(argv[i], "-mongo_uri") == 0) mongo_uri = std::string(argv[i + 1]);
             if (strcmp(argv[i], "-warm_start") == 0) warm_start = true;
             if (strcmp(argv[i], "-out_of_core") == 0) out_of_core = true;
             if (strcmp(argv[i], "-db_mode") == 0) db_mode = true;
             if (strcmp(argv[i], "-data_capacity") == 0) data_capacity = atoi(argv[i + 1]) * kMB;
             if (strcmp(argv[i], "-model_capacity") == 0) model_capacity = atoi(argv[i + 1]) * kMB;
             if (strcmp(argv[i], "-alias_capacity") == 0) alias_capacity = atoi(argv[i + 1]) * kMB;
-            if (strcmp(argv[i], "-delta_capacity") == 0) delta_capacity = atoi(argv[i + 1]) * kMB;            
+            if (strcmp(argv[i], "-delta_capacity") == 0) delta_capacity = atoi(argv[i + 1]) * kMB;
+            if (strcmp(argv[i], "-mongo_uri") == 0) mongo_uri = std::string(argv[i + 1]);
+            if (strcmp(argv[i], "-mongo_DB") == 0) mongo_DB = std::string(argv[i + 1]);
+            if (strcmp(argv[i], "-mongo_dataCollection") == 0) mongo_dataCollection = std::string(argv[i + 1]);
+            if (strcmp(argv[i], "-mongo_vocabCollection") == 0) mongo_vocabCollection = std::string(argv[i + 1]);
+
         }
         Check();
     }
@@ -97,6 +104,10 @@ namespace multiverso { namespace lightlda
         printf("-alias_capacity <arg>    Memory pool size(MB) for alias table \n");
         printf("-delta_capacity <arg>    Memory pool size(MB) for local delta cache\n");
         printf("-mongo_uri <arg>         mongo DB URI \n");
+        printf("-mongo_DB <arg>          mongo db name \n");
+        printf("-mongo_dataColl <arg>    mongo training data collection \n");
+        printf("-mongo_vocabColl <arg>   mongo vocab collection \n");
+
         exit(0);
     }
 

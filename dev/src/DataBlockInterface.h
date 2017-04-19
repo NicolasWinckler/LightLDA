@@ -14,6 +14,10 @@
 #include <string>
 #include <vector>
 #include <utility>
+
+#include <chrono>
+#include <ctime>
+
 namespace multiverso
 {
     namespace lightlda
@@ -26,6 +30,8 @@ namespace multiverso
         public:
             DataBlockInterface();
             virtual ~DataBlockInterface();
+
+            
 
             /*! \brief Gets the size (number of documents) of data block */
             DocNumber Size() const;
@@ -40,19 +46,29 @@ namespace multiverso
             const LocalVocab& meta() const;
             void set_meta(const LocalVocab* local_vocab);
 
-            // TODO find solution for the "error: expected nested-name-specifier before ‘Args’"
             /*! \brief Reads a block of data into data block from disk */
-//            template<typename Args...>
-//            void Read(Args&&... args)
-//            {
-//                IOPolicy::Read(std::forward<Args>(args)...);
-//            }
-//            /*! \brief Writes a block of data to disk */
-//            template<typename Args...>
-//            void Write(Args&&... args)
-//            {
-//                IOPolicy::Write(std::forward<Args>(args)...);
-//            }
+
+            template <typename... Args>
+            void Read(Args&&... args)
+            {
+                std::chrono::time_point<std::chrono::system_clock> start, end;
+                start = std::chrono::system_clock::now();
+                IOPolicy::Read(std::forward<Args>(args)...);
+                end = std::chrono::system_clock::now();
+                std::chrono::duration<double> elapsed_time = end-start;
+                std::cout << "time taken for loading training data: " << elapsed_time.count() << "s\n";
+            }
+
+            template <typename... Args>
+            void Write(Args&&... args)
+            {
+                std::chrono::time_point<std::chrono::system_clock> start, end;
+                start = std::chrono::system_clock::now();
+                IOPolicy::Write(std::forward<Args>(args)...);
+                end = std::chrono::system_clock::now();
+                std::chrono::duration<double> elapsed_time = end-start;
+                std::cout << "time taken for writting training data: " << elapsed_time.count() << "s\n";
+            }
 
         private:
             void GenerateDocuments();
