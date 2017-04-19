@@ -256,20 +256,20 @@ namespace multiverso
                 bsoncxx::builder::stream::document doc{};
 
                 // code below ok when creating the collection for the first time,
-                doc << "$set" << bsoncxx::builder::stream::open_document
+                doc //<< "$set" << bsoncxx::builder::stream::open_document
                     << "block_idx" << block_idx
                     << "docId" << docId
                     << "tokenIds"
                     << bsoncxx::builder::stream::open_array
                     << bsoncxx::builder::concatenate(token_array.view())
                     << bsoncxx::builder::stream::close_array
-                    << bsoncxx::builder::stream::close_document
+                    //<< bsoncxx::builder::stream::close_document
                     ;
 
                 // update
                 bsoncxx::document::value fUpdate = doc << bsoncxx::builder::stream::finalize;
-                trainingDataCollection.update_one(filter.view(), std::move(fUpdate), updateOpts);
-                //trainingDataCollection.replace_one(filter.view(), std::move(fUpdate), updateOpts);
+                //trainingDataCollection.update_one(filter.view(), std::move(fUpdate), updateOpts);
+                trainingDataCollection.replace_one(filter.view(), std::move(fUpdate), updateOpts);
 
 
                 has_read_ = false;

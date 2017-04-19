@@ -25,7 +25,6 @@ namespace multiverso { namespace lightlda
         std::vector<DataBlock*> data_buffer_;
         std::string data_path_;
         int32_t index_;
-        std::string _mongo_uri;
 
         // No copying allowed
         MemoryDataStream(const MemoryDataStream&);
@@ -210,13 +209,14 @@ namespace multiverso { namespace lightlda
             if (Config::out_of_core && Config::num_blocks != 1)
             {
                 std::cout << "create DiskDataStream with uri = " << Config::mongo_uri << std::endl;
-                return new DiskDataStream(Config::num_blocks, Config::input_dir,
-                    Config::num_iterations, Config::mongo_uri);
+                return new DiskDataStream(Config::num_blocks, Config::input_dir, Config::num_iterations,
+                                          Config::mongo_uri, Config::mongo_DB, Config::mongo_dataCollection);
             }
             else
             {
                 std::cout << "create MemoryDataStream with uri = " << Config::mongo_uri << std::endl;
-                return new MemoryDataStream(Config::num_blocks, Config::input_dir, Config::mongo_uri);
+                return new MemoryDataStream(Config::num_blocks, Config::input_dir,
+                                            Config::mongo_uri, Config::mongo_DB, Config::mongo_dataCollection);
             }
         }
 
