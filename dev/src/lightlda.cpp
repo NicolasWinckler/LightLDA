@@ -158,7 +158,13 @@ namespace multiverso { namespace lightlda
 
         static void DumpDocTopic()
         {
+            std::chrono::time_point<std::chrono::system_clock> start, end;
+            start = std::chrono::system_clock::now();
             DumpDocTopicToMongoDB();
+            end = std::chrono::system_clock::now();
+            std::chrono::duration<double> elapsed_time = end-start;
+            std::cout << "time taken for dumping the doc-topic model: " << elapsed_time.count() << "s\n";
+            
 
             //DumpDocTopicToFile();
 

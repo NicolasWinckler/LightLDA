@@ -277,14 +277,4 @@ doctokens_convertor<doc_tokens> make_doctokens_convertor(doc_tokens* tokens)
 
 
 
-
-
-
-
-
-
-
-
-
-
 #endif //LIGHTLDA_MONGOHELPER_H

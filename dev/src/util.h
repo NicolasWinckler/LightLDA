@@ -7,9 +7,10 @@
 #define LIGHTLDA_UTIL_H_
 
 #include <ctime>
-
+#include <type_traits>
 namespace multiverso { namespace lightlda
 {
+
     /*! \brief xorshift_rng is a random number generator */
     class xorshift_rng
     {
