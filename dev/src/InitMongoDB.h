@@ -34,13 +34,14 @@
 
 #include "MongoHelper.h"
 #include "mongocxx/options/index.hpp"
+#include <mongocxx/bulk_write.hpp>
 
 struct Token;
 class InitMongoDB
 {
     typedef std::unique_ptr<mongocxx::pool> MongoPool_ptr;
 public:
-    InitMongoDB() :
+    InitMongoDB(bool orderedBulk=false) :
             TrainingDataDBName_("mydb"),
             TrainingDataCollectionName_(),
             TrainingDataMongoUri_(),
@@ -50,8 +51,13 @@ public:
             kMaxDocLength(8192),
             kMaxVocab(1000000),
             ClientToTrainingData_(nullptr),
-            ClientToVocab_(nullptr)
-    {}
+            ClientToVocab_(nullptr),
+            TrainingDataBulk_(nullptr),
+            TrainingDataBulk_opt_()
+    {
+        TrainingDataBulk_opt_.ordered(orderedBulk);
+        TrainingDataBulk_ = std::move(std::unique_ptr<mongocxx::bulk_write>(new mongocxx::bulk_write(TrainingDataBulk_opt_)));
+    }
 
     virtual ~InitMongoDB()
     {}
@@ -94,7 +100,6 @@ public:
     void WriteTrainingData(int32_t block_idx, int64_t docId, std::vector<Token>& doc_tokens)
     {
         auto conn = ClientToTrainingData_->acquire();
-        //auto recProcCollection = (*conn)[s_RecProcDB][s_RecProcTrainCollection];
         auto trainingDataCollection = (*conn)[TrainingDataDBName_][TrainingDataCollectionName_];
 
         // upsert options
@@ -131,6 +136,68 @@ public:
         bsoncxx::document::value fUpdate = doc << bsoncxx::builder::stream::finalize;
         trainingDataCollection.update_one(filter.view(), std::move(fUpdate), updateOpts);
         //LOG(DEBUG) << "upserted user " << userId;
+
+    }
+
+    void WriteToDB()
+    {
+        auto conn = ClientToTrainingData_->acquire();
+        auto trainingDataCollection = (*conn)[TrainingDataDBName_][TrainingDataCollectionName_];
+
+        mongocxx::stdx::optional<mongocxx::result::bulk_write> result = trainingDataCollection.bulk_write(*TrainingDataBulk_);
+    }
+
+
+    void AddTrainingData(int32_t block_idx, int64_t docId, std::vector<Token>& doc_tokens)
+    {
+        auto conn = ClientToTrainingData_->acquire();
+        //auto recProcCollection = (*conn)[s_RecProcDB][s_RecProcTrainCollection];
+        auto trainingDataCollection = (*conn)[TrainingDataDBName_][TrainingDataCollectionName_];
+
+        // upsert options
+        mongocxx::options::update updateOpts;
+        updateOpts.upsert(true);
+
+        // filter
+        auto filter = bsoncxx::builder::stream::document{}
+                << "block_idx" << block_idx
+                << "docId" << docId
+                << bsoncxx::builder::stream::finalize;
+
+
+        auto token_array = bsoncxx::builder::stream::array{};
+        token_array << make_doctokens_convertor(&doc_tokens);
+        //open doc
+        bsoncxx::builder::stream::document doc{};
+
+        // code below ok when creating the collection for the first time,
+        doc << "$set" << bsoncxx::builder::stream::open_document
+            << "block_idx" << block_idx
+            << "docId" << docId
+            << bsoncxx::builder::stream::close_document
+            << "$push"  << bsoncxx::builder::stream::open_document
+            << "tokenIds" << bsoncxx::builder::stream::open_document
+            << "$each"  << bsoncxx::builder::stream::open_array
+            << bsoncxx::builder::concatenate(token_array.view())
+            << bsoncxx::builder::stream::close_array
+            << "$slice" << -kMaxDocLength
+            << bsoncxx::builder::stream::close_document
+            << bsoncxx::builder::stream::close_document;
+
+        // update
+        bsoncxx::document::value fUpdate = doc << bsoncxx::builder::stream::finalize;
+        //trainingDataCollection.update_one(filter.view(), std::move(fUpdate), updateOpts);
+        //LOG(DEBUG) << "upserted user " << userId;
+        mongocxx::model::update_one upsert_operation{filter.view(), fUpdate.view()};
+        upsert_operation.upsert(true);
+        TrainingDataBulk_->append(upsert_operation);
+
+        if( (docId + 1 % 1000) == 0)
+        {
+            WriteToDB();
+            TrainingDataBulk_.reset(new mongocxx::bulk_write(TrainingDataBulk_opt_));
+        }
+
 
     }
 
@@ -222,6 +289,9 @@ private:
     const int32_t kMaxVocab;
     std::unique_ptr<mongocxx::pool> ClientToTrainingData_;
     std::unique_ptr<mongocxx::pool> ClientToVocab_;
+    std::unique_ptr<mongocxx::bulk_write> TrainingDataBulk_;
+    mongocxx::options::bulk_write TrainingDataBulk_opt_;
+
 };
 
 

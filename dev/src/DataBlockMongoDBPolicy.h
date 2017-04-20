@@ -10,7 +10,7 @@
 #include "DataBlockInterface.h"
 #include <multiverso/log.h>
 
-
+#include <mongocxx/bulk_write.hpp>
 #include <memory>
 
 #include <bsoncxx/json.hpp>
@@ -206,34 +206,67 @@ namespace multiverso
 
 
 
+            //////////////////////////
             /* write from buffer to destination=MongoDB*/
+
+            // best performance yet
             void Write(int32_t block_idx)
             {
                 CheckDBParameters();
-                for(int64_t docIdx(0); docIdx<DataBlockInterface_->num_document_; docIdx++)
+                auto conn = ClientToTrainingData_->acquire();
+                auto trainingDataCollection = (*conn)[MongoDBName_][MongoCollectionName_];
+
+
+                // true -> ordered, false -> unordered
+                mongocxx::options::bulk_write bulk_opt;
+                bulk_opt.ordered(false);
+                mongocxx::bulk_write bulk(bulk_opt);
+
+                for(int64_t docId(0); docId<DataBlockInterface_->num_document_; docId++)
                 {
-                    std::vector<Token> doc_tokens;
-                    for (int32_t cursor = 0; cursor < DataBlockInterface_->documents_.at(docIdx)->Size(); ++cursor)
+                    // filter
+                    auto filter = bsoncxx::builder::stream::document{}
+                            << "block_idx" << block_idx
+                            << "docId" << docId
+                            << bsoncxx::builder::stream::finalize;
+
+                    // build token array stream
+                    auto token_array = bsoncxx::builder::stream::array{};
+                    int32_t arraySize = DataBlockInterface_->documents_.at(docId)->Size();
+                    for (int32_t cursor = 0; cursor < arraySize; ++cursor)
                     {
-                        int32_t wordId = DataBlockInterface_->documents_.at(docIdx)->Word(cursor);
-                        int32_t topicId = DataBlockInterface_->documents_.at(docIdx)->Topic(cursor);
-                        doc_tokens.push_back({wordId,topicId});
+                        int32_t wordId = DataBlockInterface_->documents_.at(docId)->Word(cursor);
+                        int32_t topicId = DataBlockInterface_->documents_.at(docId)->Topic(cursor);
+                        token_array << bsoncxx::builder::stream::open_document
+                                    << "wordId" << wordId
+                                    << "topicId" << topicId
+                                    << bsoncxx::builder::stream::close_document;
                     }
-                    WriteTrainingData(block_idx, docIdx, doc_tokens);
+
+                    //token_array << make_doctokens_convertor(&doc_tokens);
+                    //open doc
+                    bsoncxx::builder::stream::document doc{};
+
+                    // code below ok when creating the collection for the first time,
+                    doc << "$set" << bsoncxx::builder::stream::open_document
+                        << "block_idx" << block_idx
+                        << "docId" << docId
+                        << "tokenIds"
+                        << bsoncxx::builder::stream::open_array
+                        << bsoncxx::builder::concatenate(token_array.view())
+                        << bsoncxx::builder::stream::close_array
+                        << bsoncxx::builder::stream::close_document
+                            ;
+
+                    // update
+                    bsoncxx::document::value fUpdate = doc << bsoncxx::builder::stream::finalize;
+
+                    mongocxx::model::update_one upsert_operation{filter.view(), fUpdate.view()};
+                    upsert_operation.upsert(true);
+                    bulk.append(upsert_operation);
+                    //WriteTrainingData2(block_idx, docIdx);
                 }
-                has_read_ = false;
-            }
-
-
-            void Write2(int32_t block_idx)
-            {
-                CheckDBParameters();
-
-                for(int64_t docIdx(0); docIdx<DataBlockInterface_->num_document_; docIdx++)
-                {
-                    
-                    WriteTrainingData2(block_idx, docIdx);
-                }
+                mongocxx::stdx::optional<mongocxx::result::bulk_write> result = trainingDataCollection.bulk_write(bulk);
                 has_read_ = false;
             }
 
@@ -247,105 +280,6 @@ namespace multiverso
                 ClientToTrainingData_ = std::move(MongoPool_ptr(new mongocxx::pool(mongocxx::uri{uri})));
             }
 
-
-            //////////////////////////
-            void WriteTrainingData(int32_t block_idx, int64_t docId, std::vector<Token>& doc_tokens)
-            {
-                auto conn = ClientToTrainingData_->acquire();
-                //auto recProcCollection = (*conn)[s_RecProcDB][s_RecProcTrainCollection];
-                auto trainingDataCollection = (*conn)[MongoDBName_][MongoCollectionName_];
-
-                // upsert options
-                mongocxx::options::update updateOpts;
-                updateOpts.upsert(true);
-
-                // filter
-                auto filter = bsoncxx::builder::stream::document{}
-                        << "block_idx" << block_idx
-                        << "docId" << docId
-                        << bsoncxx::builder::stream::finalize;
-
-
-                auto token_array = bsoncxx::builder::stream::array{};
-                token_array << make_doctokens_convertor(&doc_tokens);
-                //open doc
-                bsoncxx::builder::stream::document doc{};
-
-                // code below ok when creating the collection for the first time,
-                doc //<< "$set" << bsoncxx::builder::stream::open_document
-                    << "block_idx" << block_idx
-                    << "docId" << docId
-                    << "tokenIds"
-                    << bsoncxx::builder::stream::open_array
-                    << bsoncxx::builder::concatenate(token_array.view())
-                    << bsoncxx::builder::stream::close_array
-                    //<< bsoncxx::builder::stream::close_document
-                    ;
-
-                // update
-                bsoncxx::document::value fUpdate = doc << bsoncxx::builder::stream::finalize;
-                //trainingDataCollection.update_one(filter.view(), std::move(fUpdate), updateOpts);
-                trainingDataCollection.replace_one(filter.view(), std::move(fUpdate), updateOpts);
-
-
-                has_read_ = false;
-
-            }
-
-            void WriteTrainingData2(int32_t block_idx, int64_t docId)
-            {
-                auto conn = ClientToTrainingData_->acquire();
-                //auto recProcCollection = (*conn)[s_RecProcDB][s_RecProcTrainCollection];
-                auto trainingDataCollection = (*conn)[MongoDBName_][MongoCollectionName_];
-
-                // upsert options
-                mongocxx::options::update updateOpts;
-                updateOpts.upsert(true);
-
-                // filter
-                auto filter = bsoncxx::builder::stream::document{}
-                        << "block_idx" << block_idx
-                        << "docId" << docId
-                        << bsoncxx::builder::stream::finalize;
-
-
-                // build token array stream
-                auto token_array = bsoncxx::builder::stream::array{};
-                int32_t arraySize = DataBlockInterface_->documents_.at(docId)->Size();
-                for (int32_t cursor = 0; cursor < arraySize; ++cursor)
-                {
-                    int32_t wordId = DataBlockInterface_->documents_.at(docId)->Word(cursor);
-                    int32_t topicId = DataBlockInterface_->documents_.at(docId)->Topic(cursor);
-                    token_array << bsoncxx::builder::stream::open_document
-                        << "wordId" << wordId
-                        << "topicId" << topicId
-                        << bsoncxx::builder::stream::close_document;
-                }
-
-                //token_array << make_doctokens_convertor(&doc_tokens);
-                //open doc
-                bsoncxx::builder::stream::document doc{};
-
-                // code below ok when creating the collection for the first time,
-                doc //<< "$set" << bsoncxx::builder::stream::open_document
-                    << "block_idx" << block_idx
-                    << "docId" << docId
-                    << "tokenIds"
-                    << bsoncxx::builder::stream::open_array
-                    << bsoncxx::builder::concatenate(token_array.view())
-                    << bsoncxx::builder::stream::close_array
-                    //<< bsoncxx::builder::stream::close_document
-                    ;
-
-                // update
-                bsoncxx::document::value fUpdate = doc << bsoncxx::builder::stream::finalize;
-                //trainingDataCollection.update_one(filter.view(), std::move(fUpdate), updateOpts);
-                trainingDataCollection.replace_one(filter.view(), std::move(fUpdate), updateOpts);
-
-
-                has_read_ = false;
-
-            }
 
             void CheckDBParameters()
             {

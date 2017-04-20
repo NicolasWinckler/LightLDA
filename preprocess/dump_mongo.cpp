@@ -560,8 +560,10 @@ int main(int argc, char* argv[])
         if(dumpToFileToo)
             block_file.write_doc(doc_buf, doc_buf_idx);
         offset_buf[j + 1] = offset_buf[j] + doc_buf_idx;
-        
-        database.WriteTrainingData(block_idx, j, doc_tokens);
+
+        // write to DB
+        //database.WriteTrainingData(block_idx, j, doc_tokens);
+        database.AddTrainingData(block_idx, j, doc_tokens);
     }//end loop doc
 
     if(dumpToFileToo)
