@@ -98,7 +98,7 @@ install(TARGETS ${EXE_NAME} DESTINATION bin)
 
 
 ####### Generate lightlda Executable
-set(SRCS mongotest.cpp)
+#[[set(SRCS mongotest.cpp)
 set(EXE_NAME mongotest)
 
 include_directories(${INCLUDE_DIRECTORIES})
@@ -107,7 +107,7 @@ Add_Executable(${EXE_NAME} ${SRCS})
 #target_link_libraries(${EXE_NAME} ${LIBRARY_NAME} ${DEPENDENCIES})
 target_link_libraries(${EXE_NAME} ${LIBRARY_NAME}_static ${DEPENDENCIES} ${Multiverso_LIBRARY_STATIC} ${Boost_LIBRARIES})
 
-install(TARGETS ${EXE_NAME} DESTINATION bin)
+install(TARGETS ${EXE_NAME} DESTINATION bin)]]
 
 
 
