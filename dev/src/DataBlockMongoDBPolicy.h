@@ -45,7 +45,7 @@ namespace multiverso
             //friend class DataBlockInterface<DataBlockMongoDBPolicy>;
 
         public:
-            DataBlockMongoDBPolicy() :
+            DataBlockMongoDBPolicy(bool orderedBulk=false) :
                     DataBlockInterface_(nullptr),
                     MongoDBName_(),
                     MongoCollectionName_(),
@@ -53,8 +53,12 @@ namespace multiverso
                     doc_buf_idx_(0),
                     has_read_(false),
                     kMaxDocLength(8192),
-                    ClientToTrainingData_(nullptr)
+                    ClientToTrainingData_(nullptr),
+                    TrainingDataBulk_(nullptr),
+                    TrainingDataBulk_opt_()
             {
+                TrainingDataBulk_opt_.ordered(orderedBulk);
+                TrainingDataBulk_ = std::move(std::unique_ptr<mongocxx::bulk_write>(new mongocxx::bulk_write(TrainingDataBulk_opt_)));
             }
             virtual ~DataBlockMongoDBPolicy(){}
 
@@ -206,6 +210,8 @@ namespace multiverso
 
 
 
+
+
             //////////////////////////
             /* write from buffer to destination=MongoDB*/
 
@@ -215,12 +221,6 @@ namespace multiverso
                 CheckDBParameters();
                 auto conn = ClientToTrainingData_->acquire();
                 auto trainingDataCollection = (*conn)[MongoDBName_][MongoCollectionName_];
-
-
-                // true -> ordered, false -> unordered
-                mongocxx::options::bulk_write bulk_opt;
-                bulk_opt.ordered(false);
-                mongocxx::bulk_write bulk(bulk_opt);
 
                 for(int64_t docId(0); docId<DataBlockInterface_->num_document_; docId++)
                 {
@@ -263,11 +263,24 @@ namespace multiverso
 
                     mongocxx::model::update_one upsert_operation{filter.view(), fUpdate.view()};
                     upsert_operation.upsert(true);
-                    bulk.append(upsert_operation);
-                    //WriteTrainingData2(block_idx, docIdx);
-                }
-                mongocxx::stdx::optional<mongocxx::result::bulk_write> result = trainingDataCollection.bulk_write(bulk);
+                    TrainingDataBulk_->append(upsert_operation);
+
+                    if( ((docId + 1) % 1000) == 0)
+                    {
+                        WriteToDB();
+                        TrainingDataBulk_.reset(new mongocxx::bulk_write(TrainingDataBulk_opt_));
+                    }
+                }// end of loop over docId
+                WriteToDB();// write the remaining data
                 has_read_ = false;
+            }
+
+            void WriteToDB()
+            {
+                auto conn = ClientToTrainingData_->acquire();
+                auto trainingDataCollection = (*conn)[MongoDBName_][MongoCollectionName_];
+
+                mongocxx::stdx::optional<mongocxx::result::bulk_write> result = trainingDataCollection.bulk_write(*TrainingDataBulk_);
             }
 
 
@@ -309,6 +322,8 @@ namespace multiverso
             bool has_read_;
             const int32_t kMaxDocLength;
             std::unique_ptr<mongocxx::pool> ClientToTrainingData_;
+            std::unique_ptr<mongocxx::bulk_write> TrainingDataBulk_;
+            mongocxx::options::bulk_write TrainingDataBulk_opt_;
         };
     } // namespace lightlda
 } // namespace multiverso

@@ -192,7 +192,7 @@ public:
         upsert_operation.upsert(true);
         TrainingDataBulk_->append(upsert_operation);
 
-        if( (docId + 1 % 1000) == 0)
+        if( ((docId + 1) % 1000) == 0)
         {
             WriteToDB();
             TrainingDataBulk_.reset(new mongocxx::bulk_write(TrainingDataBulk_opt_));

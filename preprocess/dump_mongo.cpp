@@ -565,6 +565,7 @@ int main(int argc, char* argv[])
         //database.WriteTrainingData(block_idx, j, doc_tokens);
         database.AddTrainingData(block_idx, j, doc_tokens);
     }//end loop doc
+    database.WriteToDB();
 
     if(dumpToFileToo)
         block_file.write_real_header(offset_buf, doc_num);
