@@ -40,7 +40,7 @@ set(INCLUDE_DIRECTORIES
 # Note: order of the dependencies matter for linking with static libs
 set(DEPENDENCIES
 	#${Multiverso_LIBRARIES}#zmq runtime error if shared and static
-	#${Multiverso_LIBRARY_STATIC} after merging multiverso we do not need FindMultiverso.cmake
+	#${Multiverso_LIBRARY_STATIC}
 	multiverso_static
 	pthread
 	${ZMQ_LIBRARIES}
@@ -76,7 +76,10 @@ include_directories(${INCLUDE_DIRECTORIES})
 Add_Executable(${EXE_NAME} ${SRCS})
 
 #target_link_libraries(${EXE_NAME} ${LIBRARY_NAME} ${DEPENDENCIES})
-target_link_libraries(${EXE_NAME} ${LIBRARY_NAME}_static ${DEPENDENCIES} ${Multiverso_LIBRARY_STATIC})
+target_link_libraries(${EXE_NAME} ${LIBRARY_NAME}_static ${DEPENDENCIES}
+		multiverso_static
+		#${Multiverso_LIBRARY_STATIC}
+		)
 
 install(TARGETS ${EXE_NAME} DESTINATION bin)
 
@@ -90,7 +93,10 @@ include_directories(${INCLUDE_DIRECTORIES})
 Add_Executable(${EXE_NAME} ${SRCS})
 
 #target_link_libraries(${EXE_NAME} ${LIBRARY_NAME} ${DEPENDENCIES})
-target_link_libraries(${EXE_NAME} ${LIBRARY_NAME}_static ${DEPENDENCIES} ${Multiverso_LIBRARY_STATIC} ${Boost_LIBRARIES})
+target_link_libraries(${EXE_NAME} ${LIBRARY_NAME}_static ${DEPENDENCIES}
+		#${Multiverso_LIBRARY_STATIC}
+		multiverso_static
+		${Boost_LIBRARIES})
 
 install(TARGETS ${EXE_NAME} DESTINATION bin)
 

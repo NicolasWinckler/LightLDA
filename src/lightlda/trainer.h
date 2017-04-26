@@ -11,12 +11,14 @@
 #include <multiverso/multiverso.h>
 #include <multiverso/barrier.h>
 
+#include "meta.h"
+
 namespace multiverso { namespace lightlda
 {
     class AliasTable;
     class LDADataBlock;
     class LightDocSampler;
-    class Meta;
+    //class Meta;
     class PSModel;
 
     /*! \brief Trainer is responsible for training a data block */

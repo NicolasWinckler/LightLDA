@@ -59,10 +59,14 @@ namespace multiverso { namespace lightlda
         delete[] documents_buffer_;
     }
 
-    void DataBlock::Read(std::string file_name)
+    void DataBlock::SetFileName(std::string file_name)
     {
         file_name_ = file_name;
+    }
 
+    void DataBlock::Read()
+    {
+        
         std::ifstream block_file(file_name_, std::ios::in | std::ios::binary);
         if (!block_file.good())
         {

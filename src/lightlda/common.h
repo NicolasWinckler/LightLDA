@@ -73,6 +73,10 @@ namespace multiverso { namespace lightlda
         static int64_t model_capacity;
         static int64_t delta_capacity;
         static int64_t alias_capacity;
+        static std::string mongo_uri;
+        static std::string mongo_DB;
+        static std::string mongo_dataCollection;
+        static std::string mongo_vocabCollection;
     private:
         /*! \brief Print usage */
         static void PrintUsage();

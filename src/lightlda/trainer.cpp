@@ -39,7 +39,7 @@ namespace multiverso { namespace lightlda
         LDADataBlock* lda_data_block =
             reinterpret_cast<LDADataBlock*>(data_block);
 
-        DataBlock& data = lda_data_block->data();
+        auto& data = lda_data_block->data();
         int32_t block = lda_data_block->block();
         int32_t slice = lda_data_block->slice();
         int32_t iter = lda_data_block->iteration();
@@ -107,7 +107,7 @@ namespace multiverso { namespace lightlda
     {
         double thread_doc = 0, thread_word = 0;
 
-        DataBlock& data = lda_data_block->data();
+        auto& data = lda_data_block->data();
         int32_t block = lda_data_block->block();
         int32_t slice = lda_data_block->slice();
         const LocalVocab& local_vocab = data.meta();
@@ -156,7 +156,7 @@ namespace multiverso { namespace lightlda
 
     void Trainer::Dump(int32_t iter, LDADataBlock* lda_data_block)
     {
-        DataBlock& data = lda_data_block->data();
+        auto& data = lda_data_block->data();
         int32_t slice = lda_data_block->slice();
         const LocalVocab& local_vocab = data.meta();
 
@@ -191,7 +191,7 @@ namespace multiverso { namespace lightlda
             reinterpret_cast<LDADataBlock*>(data_block);
         // Request word-topic-table
         int32_t slice = lda_data_block->slice();
-        DataBlock& data = lda_data_block->data();
+        auto& data = lda_data_block->data();
         const LocalVocab& local_vocab = data.meta();
 
         for (const int32_t* p = local_vocab.begin(slice);

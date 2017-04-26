@@ -13,7 +13,8 @@ set(INCLUDE_DIRECTORIES
 
 set(DEPENDENCIES
 	lightlda_core
-	${Multiverso_LIBRARIES}
+	#${Multiverso_LIBRARIES}
+	multiverso_static
 	pthread
 	${ZMQ_LIBRARIES}
 	${MPI_CXX_LIBRARIES}

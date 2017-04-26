@@ -12,6 +12,22 @@
 #include <multiverso/log.h>
 #include <multiverso/row.h>
 
+#include <chrono>
+#include <ctime>
+#include <bsoncxx/json.hpp>
+
+#include <mongocxx/client.hpp>
+#include <mongocxx/cursor.hpp>
+#include <mongocxx/instance.hpp>
+#include <mongocxx/uri.hpp>
+#include <mongocxx/options/find.hpp>
+#include <mongocxx/pool.hpp>
+
+#include <bsoncxx/builder/stream/document.hpp>
+#include <bsoncxx/builder/stream/array.hpp>
+#include <mongocxx/exception/exception.hpp>
+#include <bsoncxx/exception/exception.hpp>
+
 namespace multiverso { namespace lightlda
 {     
     class LightLDA
@@ -20,9 +36,10 @@ namespace multiverso { namespace lightlda
         static void Run(int argc, char** argv)
         {
             Config::Init(argc, argv);
-            
+            mongo_uri_ = Config::mongo_uri;
             AliasTable* alias_table = new AliasTable();
             Barrier* barrier = new Barrier(Config::num_local_workers);
+            meta.SetMongoParameters(mongo_uri_,"test","vocabCollection");
             meta.Init();
             std::vector<TrainerBase*> trainers;
             for (int32_t i = 0; i < Config::num_local_workers; ++i)
@@ -36,6 +53,8 @@ namespace multiverso { namespace lightlda
             config.num_servers = Config::num_servers;
             config.num_aggregator = Config::num_aggregator;
             config.server_endpoint_file = Config::server_file;
+            config.output_dir = Config::output_dir;
+
 
             Multiverso::Init(trainers, param_loader, config, &argc, &argv);
 
@@ -139,10 +158,81 @@ namespace multiverso { namespace lightlda
 
         static void DumpDocTopic()
         {
+            std::chrono::time_point<std::chrono::system_clock> start, end;
+            start = std::chrono::system_clock::now();
+            DumpDocTopicToMongoDB();
+            end = std::chrono::system_clock::now();
+            std::chrono::duration<double> elapsed_time = end-start;
+            std::cout << "time taken for dumping the doc-topic model: " << elapsed_time.count() << "s\n";
+            
+
+            //DumpDocTopicToFile();
+
+
+        }
+
+        static void DumpDocTopicToMongoDB()
+        {
+            mongocxx::pool ClientToModel(mongocxx::uri{mongo_uri_});
+            auto conn = ClientToModel.acquire();
+            auto doc_topicCollection = (*conn)["test"]["docTopicModel"];
+            mongocxx::options::update updateOpts;
+            updateOpts.upsert(true);
+            bsoncxx::builder::stream::document index_builder;
+            index_builder << "block_idx" << 1 << "docId" << 1;
+            doc_topicCollection.create_index(index_builder.view(), {});
+
+            
             Row<int32_t> doc_topic_counter(0, Format::Sparse, kMaxDocLength); 
             for (int32_t block = 0; block < Config::num_blocks; ++block)
             {
-                std::ofstream fout("doc_topic." + std::to_string(block));
+
+                //std::ofstream fout("doc_topic." + std::to_string(block));
+                data_stream->BeforeDataAccess();
+                DataBlock& data_block = data_stream->CurrDataBlock();
+                for (int doc_i = 0; doc_i < data_block.Size(); ++doc_i)
+                {
+                    auto filter = bsoncxx::builder::stream::document{}
+                            << "block_idx" << block
+                            << "docId" << doc_i
+                            << bsoncxx::builder::stream::finalize;
+                    Document* doc = data_block.GetOneDoc(doc_i);
+                    doc_topic_counter.Clear();
+                    doc->GetDocTopicVector(doc_topic_counter);
+                    //fout << doc_i << " ";  // doc id
+                    Row<int32_t>::iterator iter = doc_topic_counter.Iterator();
+                    bsoncxx::builder::stream::document ucpt_doc{};//ucpt = unormalized cpt
+
+                    auto subdocstream = ucpt_doc << "$set" << bsoncxx::builder::stream::open_document
+                                << "block_idx" << block
+                                << "docId" <<  doc_i
+                                << "ucpt" << bsoncxx::builder::stream::open_array;
+
+                    while (iter.HasNext())
+                    {
+                        subdocstream
+                                << bsoncxx::builder::stream::open_document
+                                    << "topic_idx" << iter.Key()
+                                    << "topic_count" << iter.Value()
+                                << bsoncxx::builder::stream::close_document;
+                        iter.Next();
+                    }
+                    subdocstream << bsoncxx::builder::stream::close_array 
+                                 << bsoncxx::builder::stream::close_document;
+                    bsoncxx::document::value fUpdate = ucpt_doc << bsoncxx::builder::stream::finalize;
+                    doc_topicCollection.update_one(filter.view(), std::move(fUpdate), updateOpts);
+                }
+                data_stream->EndDataAccess();
+            }
+        }
+
+        static void DumpDocTopicToFile()
+        {
+            std::string outputdir = Config::output_dir;
+            Row<int32_t> doc_topic_counter(0, Format::Sparse, kMaxDocLength);
+            for (int32_t block = 0; block < Config::num_blocks; ++block)
+            {
+                std::ofstream fout(outputdir + "/doc_topic." + std::to_string(block));
                 data_stream->BeforeDataAccess();
                 DataBlock& data_block = data_stream->CurrDataBlock();
                 for (int i = 0; i < data_block.Size(); ++i)
@@ -154,7 +244,8 @@ namespace multiverso { namespace lightlda
                     Row<int32_t>::iterator iter = doc_topic_counter.Iterator();
                     while (iter.HasNext())
                     {
-                        fout << " " << iter.Key() << ":" << iter.Value();
+                        fout << " " << iter.Key()
+                             << ":" << iter.Value();
                         iter.Next();
                     }
                     fout << std::endl;
@@ -222,9 +313,11 @@ namespace multiverso { namespace lightlda
         static IDataStream* data_stream;
         /*! \brief training data meta information */
         static Meta meta;
+        static std::string mongo_uri_;
     };
     IDataStream* LightLDA::data_stream = nullptr;
     Meta LightLDA::meta;
+    std::string LightLDA::mongo_uri_ = "to be initialized";
 
 } // namespace lightlda
 } // namespace multiverso
@@ -232,6 +325,28 @@ namespace multiverso { namespace lightlda
 
 int main(int argc, char** argv)
 {
-    multiverso::lightlda::LightLDA::Run(argc, argv);
+    try {
+        std::chrono::time_point<std::chrono::system_clock> start, end;
+        start = std::chrono::system_clock::now();
+        {
+            multiverso::lightlda::LightLDA::Run(argc, argv);
+        }
+        end = std::chrono::system_clock::now();
+        std::chrono::duration<double> elapsed_time = end-start;
+        //std::time_t end_time = std::chrono::system_clock::to_time_t(end);
+        std::cout << "elapsed time for LightLDA computation: " << elapsed_time.count() << "s\n";
+    }
+    catch(mongocxx::exception& e)
+    {
+        std::cout << "[mongocxx::exception] exception caught: " << e.what();
+    }
+    catch(bsoncxx::exception& e)
+    {
+        std::cout << "[bsoncxx::exception] exception caught: " << e.what();
+    }
+    catch(std::exception& e) {
+        std::cout << "[std::exception] exception caught: " << e.what();
+    }
+
     return 0;
 }

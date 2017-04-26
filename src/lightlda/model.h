@@ -9,6 +9,7 @@
 #include <memory>
 #include <string>
 
+#include "meta.h"
 #include "common.h"
 #include <multiverso/meta.h>
 
@@ -19,7 +20,7 @@ namespace multiverso
      
 namespace lightlda
 {
-    class Meta;
+    //class Meta;
     class Trainer;
 
     /*! \brief interface for acceess to model */

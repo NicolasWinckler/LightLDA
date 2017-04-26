@@ -1,0 +1,332 @@
+//
+// Created by nw on 31.03.17.
+//
+
+#ifndef LIGHTLDA_DATABLOCKDBPOLICY_H
+#define LIGHTLDA_DATABLOCKDBPOLICY_H
+
+#include "document.h"
+#include "common.h"
+#include "DataBlockInterface.h"
+#include <multiverso/log.h>
+
+#include <mongocxx/bulk_write.hpp>
+#include <memory>
+
+#include <bsoncxx/json.hpp>
+
+#include <mongocxx/client.hpp>
+#include <mongocxx/cursor.hpp>
+#include <mongocxx/instance.hpp>
+#include <mongocxx/uri.hpp>
+#include <mongocxx/options/find.hpp>
+#include <mongocxx/pool.hpp>
+
+#include <bsoncxx/builder/stream/document.hpp>
+#include <bsoncxx/builder/stream/array.hpp>
+
+#include "MongoHelper.h"
+#include <type_traits>
+
+namespace multiverso
+{
+    namespace lightlda
+    {
+        struct Token 
+        {
+            int32_t word_id;
+            int32_t topic_id;
+        };
+
+        class DataBlockMongoDBPolicy
+        {
+
+            typedef std::unique_ptr<mongocxx::pool> MongoPool_ptr;
+            //friend class DataBlockInterface<DataBlockMongoDBPolicy>;
+
+        public:
+            DataBlockMongoDBPolicy(bool orderedBulk=false) :
+                    DataBlockInterface_(nullptr),
+                    MongoDBName_(),
+                    MongoCollectionName_(),
+                    MongoUri_(),
+                    doc_buf_idx_(0),
+                    has_read_(false),
+                    kMaxDocLength(8192),
+                    ClientToTrainingData_(nullptr),
+                    TrainingDataBulk_(nullptr),
+                    TrainingDataBulk_opt_()
+            {
+                TrainingDataBulk_opt_.ordered(orderedBulk);
+                TrainingDataBulk_ = std::move(std::unique_ptr<mongocxx::bulk_write>(new mongocxx::bulk_write(TrainingDataBulk_opt_)));
+            }
+            virtual ~DataBlockMongoDBPolicy(){}
+
+
+            void SetFileName(const std::string& filename){/*dummy-temporary function to match current API */}
+
+            void Init(DataBlockInterface<DataBlockMongoDBPolicy>* interface)
+            {
+                DataBlockInterface_ = interface;
+                
+            }
+
+
+            bool HasLoad() const
+            {
+                return has_read_;
+            }
+
+            /* read from source=MongoDB and store to buffer*/
+            void Read(int32_t block_idx)
+            {
+                CheckDBParameters();
+                auto conn = ClientToTrainingData_->acquire();
+                auto trainingDataCollection = (*conn)[MongoDBName_][MongoCollectionName_];
+
+
+                // filter
+                auto filter = bsoncxx::builder::stream::document{}
+                        << "block_idx" << block_idx
+                        << bsoncxx::builder::stream::finalize;
+
+                DataBlockInterface_->num_document_ = trainingDataCollection.count(filter.view());
+
+
+                static_assert( std::is_same< DocNumber, decltype(trainingDataCollection.count(filter.view())) >::value, "types must be the same");
+
+                if (DataBlockInterface_->num_document_ > DataBlockInterface_->max_num_document_)
+                {
+                    Log::Fatal("Rank %d: Num of documents > max number of documents when reading MongoDB %s, collection %s \n",
+                               Multiverso::ProcessRank(), MongoDBName_.c_str(), MongoCollectionName_.c_str());
+                }
+
+                doc_buf_idx_=0;
+                DataBlockInterface_->offset_buffer_[0] = 0;
+                for(int64_t docId(0); docId<DataBlockInterface_->num_document_; docId++ )
+                {
+                    ReadTrainingData(block_idx,docId);
+                }
+
+
+                //TODO: the check below is useless yet, fix this
+                DataBlockInterface_->corpus_size_ = doc_buf_idx_;
+                if (DataBlockInterface_->corpus_size_ > DataBlockInterface_->memory_block_size_)
+                {
+                    Log::Fatal("Rank %d: corpus_size_ > memory_block_size when reading file \n",
+                               Multiverso::ProcessRank());
+                }
+                DataBlockInterface_->GenerateDocuments();
+                has_read_ = true;
+            }
+
+
+
+            void ReadTrainingData(int32_t block_idx, int64_t docId)
+            {
+                auto conn = ClientToTrainingData_->acquire();
+                auto trainingDataCollection = (*conn)[MongoDBName_][MongoCollectionName_];
+
+                // filter
+                auto filter = bsoncxx::builder::stream::document{}
+                        << "block_idx" << block_idx
+                        << "docId" << docId
+                        << bsoncxx::builder::stream::finalize;
+                mongocxx::options::find opts{};
+                opts.projection(bsoncxx::builder::stream::document{}
+                    << "tokenIds" << 1 
+                    << bsoncxx::builder::stream::finalize);
+                opts.no_cursor_timeout(true);
+
+                auto trainingCursor = trainingDataCollection.find(filter.view(), opts);
+
+                for (auto &&doc : trainingCursor)
+                {
+                    bsoncxx::document::element ele_id;
+
+                    if ((ele_id = doc["tokenIds"]) )
+                    {
+                        bsoncxx::array::view observedWordArray{ele_id.get_array().value};
+                        // loop over visited items (array)
+
+                        int doc_token_count = 0;
+                        std::vector<Token> doc_tokens;
+
+                        //bsoncxx::document::view tokenView;
+                        for(const auto& observedWord : observedWordArray)
+                        {
+                            if(observedWord.type() == type::k_document)
+                            {
+                                if (doc_token_count >= kMaxDocLength) break;
+                                //bsoncxx::document::view tokenView = observedWord.get_document().value;
+                                bsoncxx::document::view tokenView = observedWord.get_document().view();
+
+                                bsoncxx::document::element word_ele = tokenView["wordId"];
+                                bsoncxx::document::element topic_ele = tokenView["topicId"];
+
+                                int32_t wordId = -1;
+                                int32_t topicId = -1;
+
+                                if (word_ele && word_ele.type() == bsoncxx::type::k_int32)
+                                    wordId = word_ele.get_int32().value;
+
+                                if (topic_ele && topic_ele.type() == bsoncxx::type::k_int32)
+                                    topicId = topic_ele.get_int32().value;
+
+                                if(wordId >= 0 && topicId >= 0)
+                                {
+                                    doc_tokens.push_back({ wordId, topicId });
+                                }
+                                //else
+                                //    Log::Fatal("[ERROR] word_id or/and topic_id not found in MongoDB, and is/are required for the LightLDA document buffer.\n");
+                            }
+
+                        }// end loop over words
+
+                        /* // should be already sorted, commented for overhead
+                        std::sort(doc_tokens.begin(), doc_tokens.end(), [](const Token& token1, const Token& token2)
+                        {
+                            return token1.word_id < token2.word_id;
+                        });
+                        */
+
+                        DataBlockInterface_->documents_buffer_[doc_buf_idx_++] = 0;
+                        for (auto& token : doc_tokens)
+                        {
+                            DataBlockInterface_->documents_buffer_[doc_buf_idx_++] = token.word_id;
+                            DataBlockInterface_->documents_buffer_[doc_buf_idx_++] = token.topic_id;
+                        }
+
+                        DataBlockInterface_->offset_buffer_[docId + 1] = doc_buf_idx_;
+                    }
+
+                    
+                        
+                }// end loop over doc
+
+
+
+            }
+
+
+
+
+
+            //////////////////////////
+            /* write from buffer to destination=MongoDB*/
+
+            // best performance yet
+            void Write(int32_t block_idx)
+            {
+                CheckDBParameters();
+                auto conn = ClientToTrainingData_->acquire();
+                auto trainingDataCollection = (*conn)[MongoDBName_][MongoCollectionName_];
+
+                for(int64_t docId(0); docId<DataBlockInterface_->num_document_; docId++)
+                {
+                    // filter
+                    auto filter = bsoncxx::builder::stream::document{}
+                            << "block_idx" << block_idx
+                            << "docId" << docId
+                            << bsoncxx::builder::stream::finalize;
+
+                    // build token array stream
+                    auto token_array = bsoncxx::builder::stream::array{};
+                    int32_t arraySize = DataBlockInterface_->documents_.at(docId)->Size();
+                    for (int32_t cursor = 0; cursor < arraySize; ++cursor)
+                    {
+                        int32_t wordId = DataBlockInterface_->documents_.at(docId)->Word(cursor);
+                        int32_t topicId = DataBlockInterface_->documents_.at(docId)->Topic(cursor);
+                        token_array << bsoncxx::builder::stream::open_document
+                                    << "wordId" << wordId
+                                    << "topicId" << topicId
+                                    << bsoncxx::builder::stream::close_document;
+                    }
+
+                    //token_array << make_doctokens_convertor(&doc_tokens);
+                    //open doc
+                    bsoncxx::builder::stream::document doc{};
+
+                    // code below ok when creating the collection for the first time,
+                    doc << "$set" << bsoncxx::builder::stream::open_document
+                        << "block_idx" << block_idx
+                        << "docId" << docId
+                        << "tokenIds"
+                        << bsoncxx::builder::stream::open_array
+                        << bsoncxx::builder::concatenate(token_array.view())
+                        << bsoncxx::builder::stream::close_array
+                        << bsoncxx::builder::stream::close_document
+                            ;
+
+                    // update
+                    bsoncxx::document::value fUpdate = doc << bsoncxx::builder::stream::finalize;
+
+                    mongocxx::model::update_one upsert_operation{filter.view(), fUpdate.view()};
+                    upsert_operation.upsert(true);
+                    TrainingDataBulk_->append(upsert_operation);
+
+                    if( ((docId + 1) % 1000) == 0)
+                    {
+                        WriteToDB();
+                        TrainingDataBulk_.reset(new mongocxx::bulk_write(TrainingDataBulk_opt_));
+                    }
+                }// end of loop over docId
+                WriteToDB();// write the remaining data
+                has_read_ = false;
+            }
+
+            void WriteToDB()
+            {
+                auto conn = ClientToTrainingData_->acquire();
+                auto trainingDataCollection = (*conn)[MongoDBName_][MongoCollectionName_];
+
+                mongocxx::stdx::optional<mongocxx::result::bulk_write> result = trainingDataCollection.bulk_write(*TrainingDataBulk_);
+            }
+
+
+            void SetMongoParameters(const std::string& uri, const std::string& DBName, const std::string& collectionName)
+            {
+                MongoUri_ = uri;
+                MongoDBName_ = DBName;
+                MongoCollectionName_ = collectionName;
+
+                ClientToTrainingData_ = std::move(MongoPool_ptr(new mongocxx::pool(mongocxx::uri{uri})));
+            }
+
+
+            void CheckDBParameters()
+            {
+                // some checks...
+                if(MongoUri_.empty())
+                    Log::Fatal("[DataBlock] Mongo uri is not defined, program will now exit \n");
+
+                if(MongoDBName_.empty())
+                    Log::Fatal("[DataBlock] Mongo DataBase Name is not defined, program will now exit \n");
+
+                if(MongoCollectionName_.empty())
+                    Log::Fatal("[DataBlock] Mongo Collection Name is not defined, program will now exit \n");
+
+                if(!ClientToTrainingData_)
+                    Log::Fatal("[DataBlock] Mongo pool is not not valid, program will now exit \n");
+            }
+
+            //////////////////////////
+
+        private:
+            //int32_t *doc_buf_;
+            DataBlockInterface<DataBlockMongoDBPolicy>* DataBlockInterface_;
+            std::string MongoDBName_;
+            std::string MongoCollectionName_;
+            std::string MongoUri_;
+            int32_t doc_buf_idx_;
+            bool has_read_;
+            const int32_t kMaxDocLength;
+            std::unique_ptr<mongocxx::pool> ClientToTrainingData_;
+            std::unique_ptr<mongocxx::bulk_write> TrainingDataBulk_;
+            mongocxx::options::bulk_write TrainingDataBulk_opt_;
+        };
+    } // namespace lightlda
+} // namespace multiverso
+
+
+#endif //LIGHTLDA_DATABLOCKDBPOLICY_H
