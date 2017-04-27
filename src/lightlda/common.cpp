@@ -25,6 +25,8 @@ namespace multiverso { namespace lightlda
     std::string Config::mongo_DB = "test";
     std::string Config::mongo_dataCollection = "trainingDataCollection";
     std::string Config::mongo_vocabCollection = "vocabCollection";
+    std::string Config::mongo_docTopicCollection = "docTopicModel";
+    std::string Config::mongo_wordTopicCollection = "wordTopicModel";
     bool Config::warm_start = false;
     bool Config::inference = false;
     bool Config::out_of_core = false;
@@ -70,8 +72,10 @@ namespace multiverso { namespace lightlda
             if (strcmp(argv[i], "-delta_capacity") == 0) delta_capacity = atoi(argv[i + 1]) * kMB;
             if (strcmp(argv[i], "-mongo_uri") == 0) mongo_uri = std::string(argv[i + 1]);
             if (strcmp(argv[i], "-mongo_DB") == 0) mongo_DB = std::string(argv[i + 1]);
-            if (strcmp(argv[i], "-mongo_dataCollection") == 0) mongo_dataCollection = std::string(argv[i + 1]);
-            if (strcmp(argv[i], "-mongo_vocabCollection") == 0) mongo_vocabCollection = std::string(argv[i + 1]);
+            if (strcmp(argv[i], "-mongo_dataColl") == 0) mongo_dataCollection = std::string(argv[i + 1]);
+            if (strcmp(argv[i], "-mongo_vocabColl") == 0) mongo_vocabCollection = std::string(argv[i + 1]);
+            if (strcmp(argv[i], "-mongo_docTopicColl") == 0) mongo_docTopicCollection = std::string(argv[i + 1]);
+            if (strcmp(argv[i], "-mongo_wordTopicColl") == 0) mongo_wordTopicCollection = std::string(argv[i + 1]);
 
         }
         Check();
@@ -107,6 +111,8 @@ namespace multiverso { namespace lightlda
         printf("-mongo_DB <arg>          mongo db name \n");
         printf("-mongo_dataColl <arg>    mongo training data collection \n");
         printf("-mongo_vocabColl <arg>   mongo vocab collection \n");
+        printf("-mongo_docTopicColl <arg>   mongo doc-topic distribution collection \n");
+        printf("-mongo_wordTopicColl <arg>   mongo word-topic distribution collection \n");
 
         exit(0);
     }
@@ -146,7 +152,7 @@ namespace multiverso { namespace lightlda
 
     void Config::Check()
     {
-        if (input_dir == "" || output_dir == "" || num_vocabs <= 0 || max_num_document == -1) 
+        if (input_dir == "" || num_vocabs <= 0 || max_num_document == -1) 
         {
             PrintUsage();
         }

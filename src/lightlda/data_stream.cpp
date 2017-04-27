@@ -6,6 +6,7 @@
 #include <thread>
 
 #include <multiverso/double_buffer.h>
+#include "MongoHelper.h"
 
 namespace multiverso { namespace lightlda
 {

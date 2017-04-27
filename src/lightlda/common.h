@@ -77,6 +77,8 @@ namespace multiverso { namespace lightlda
         static std::string mongo_DB;
         static std::string mongo_dataCollection;
         static std::string mongo_vocabCollection;
+        static std::string mongo_docTopicCollection;
+        static std::string mongo_wordTopicCollection;
     private:
         /*! \brief Print usage */
         static void PrintUsage();

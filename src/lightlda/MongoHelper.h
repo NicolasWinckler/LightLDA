@@ -37,6 +37,44 @@ using bsoncxx::builder::stream::open_array;
 using bsoncxx::builder::stream::open_document;
 using namespace bsoncxx;
 
+
+namespace multiverso { namespace lightlda
+    {
+        class MongoConfig
+        {
+        public:
+            MongoConfig() {}
+
+            MongoConfig(const std::string& uri="mongodb://localhost:27017",
+                        const std::string& dbName="test",
+                        const std::string& collection="trainingDataCollection") :
+                    _mongo_uri(uri),
+                    _mongo_db(dbName),
+                    _mongo_collection(collection)
+            {
+            }
+            void SetMongoParameters(const std::string& uri,
+                                    const std::string& dbName,
+                                    const std::string& collection)
+            {
+                _mongo_uri=uri;
+                _mongo_db=dbName;
+                _mongo_collection=collection;
+            }
+
+            virtual ~MongoConfig() {}
+        protected:
+
+            std::string _mongo_uri;
+            std::string _mongo_db;
+            std::string _mongo_collection;
+
+        };
+
+
+    } // namespace lightlda
+} // namespace multiverso
+
 // concatenates arbitrary ranges into an array context
 template <typename begin_t, typename end_t>
 class range_array_appender

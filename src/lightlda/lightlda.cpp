@@ -36,10 +36,9 @@ namespace multiverso { namespace lightlda
         static void Run(int argc, char** argv)
         {
             Config::Init(argc, argv);
-            mongo_uri_ = Config::mongo_uri;
             AliasTable* alias_table = new AliasTable();
             Barrier* barrier = new Barrier(Config::num_local_workers);
-            meta.SetMongoParameters(mongo_uri_,"test","vocabCollection");
+            meta.SetMongoParameters(Config::mongo_uri,Config::mongo_DB,Config::mongo_vocabCollection);
             meta.Init();
             std::vector<TrainerBase*> trainers;
             for (int32_t i = 0; i < Config::num_local_workers; ++i)
@@ -173,9 +172,9 @@ namespace multiverso { namespace lightlda
 
         static void DumpDocTopicToMongoDB()
         {
-            mongocxx::pool ClientToModel(mongocxx::uri{mongo_uri_});
+            mongocxx::pool ClientToModel(mongocxx::uri{Config::mongo_uri});
             auto conn = ClientToModel.acquire();
-            auto doc_topicCollection = (*conn)["test"]["docTopicModel"];
+            auto doc_topicCollection = (*conn)[Config::mongo_DB][Config::mongo_docTopicCollection];
             mongocxx::options::update updateOpts;
             updateOpts.upsert(true);
             bsoncxx::builder::stream::document index_builder;
@@ -313,11 +312,9 @@ namespace multiverso { namespace lightlda
         static IDataStream* data_stream;
         /*! \brief training data meta information */
         static Meta meta;
-        static std::string mongo_uri_;
     };
     IDataStream* LightLDA::data_stream = nullptr;
     Meta LightLDA::meta;
-    std::string LightLDA::mongo_uri_ = "to be initialized";
 
 } // namespace lightlda
 } // namespace multiverso
