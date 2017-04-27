@@ -83,8 +83,12 @@ namespace multiverso
         //poll_items_[0].events = ZMQ_POLLIN;
         //poll_items_[0].revents = 0;
         update_thread_ = std::thread(&Server::StartUpdateThread, this);
-        Log::Info("Server %d starts: num_workers=%d endpoint=%s\n output_dir=%s\n", 
-            server_id_, worker_proc_count_, endpoint_.c_str(), output_dir_.c_str());
+        if(!output_dir_.empty())
+            Log::Info("Server %d starts: num_workers=%d endpoint=%s output_dir=%s\n",
+                server_id_, worker_proc_count_, endpoint_.c_str(), output_dir_.c_str());
+        else
+            Log::Info("Server %d starts: num_workers=%d endpoint=%s\n",
+                      server_id_, worker_proc_count_, endpoint_.c_str());
     }
 
     // Clean up at the end of the server thread
@@ -455,6 +459,14 @@ namespace multiverso
     //
     void Server::DumpWordTopicToMongo()
     {
+        mongocxx::pool ClientToModel(mongocxx::uri{_mongo_uri});
+        auto conn = ClientToModel.acquire();
+        auto doc_topicCollection = (*conn)[_mongo_db][_mongo_collection];
+        mongocxx::options::update updateOpts;
+        updateOpts.upsert(true);
+        //bsoncxx::builder::stream::document index_builder;
+        //index_builder << "block_idx" << 1 << "docId" << 1;
+        //doc_topicCollection.create_index(index_builder.view(), {});
         Log::Info("Server %d: Dump model...\n", server_id_);
         for (int i = 0; i < tables_.size(); ++i)
         {
