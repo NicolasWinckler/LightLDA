@@ -1,6 +1,7 @@
 #include <algorithm>
 #include "log.h"
 #include "row.h"
+#include "row_iter.h"
 #include "table.h"
 #include "table_iter.h"
 #include "zmq_util.h"
@@ -428,7 +429,7 @@ namespace multiverso
     }
     //-- end of server process routine ---------------------------------------/
     
-    void Server::DumpModel()
+    void Server::DumpModel2()
     {
         Log::Info("Server %d: Dump model...\n", server_id_);
         for (int i = 0; i < tables_.size(); ++i)
@@ -456,17 +457,75 @@ namespace multiverso
     }
 
 
+    void Server::DumpModel()
+    {
+        Log::Info("Server %d: Dump model...\n", server_id_);
+        for (int i = 0; i < tables_.size(); ++i)
+        {
+            Log::Info("Server OK 1\n");
+
+            // dump model to file server_$server_id$_table_$table_id$.model
+            std::string file_name;
+            if(!output_dir_.empty())
+                file_name = output_dir_ + "/" + "server_" + std::to_string(server_id_)
+                            + "_table_" + std::to_string(i) + ".model";
+            else
+                file_name = "server_" + std::to_string(server_id_)
+                            + "_table_" + std::to_string(i) + ".model";
+            std::ofstream fout(file_name);
+
+            Table *table = tables_[i];
+            TableIterator iter = table->Iterator();
+            int size = table->ElementSize();
+            while (iter.HasNext())
+            {
+                //Log::Info("Server OK 2\n");
+                std::cout << "NonzeroSize = " << iter.Row()->NonzeroSize();
+                if(0 != iter.Row()->NonzeroSize())
+                {
+                    //Log::Info("Server OK 2\n");
+                    RowBase* rowbase = iter.Row();
+
+                    Row<int32_t >* rowderived = dynamic_cast<Row<int32_t >*>(rowbase);
+                    std::string result = "";
+                    Log::Info("before rowderived->RowId() \n");
+                    result += std::to_string(rowderived->RowId());
+                    Log::Info("after rowderived->RowId() \n");
+                    RowIterator<integer_t> iter2 = rowderived->Iterator();
+                    //auto rowId = iter.Row()->RowId();
+                    //auto iter2 = iter.Row()->Iterator();
+                    for (integer_t i = 0; iter2.HasNext(); ++i)
+                    {
+                        result += " " + std::to_string(iter2.Key()) +
+                                  ":" + std::to_string(iter2.Value());
+
+
+                        iter2.Next();
+                    }
+                    fout << result << std::endl;
+
+
+                }
+                //fout << iter.Row()->ToString() << std::endl;
+
+                iter.Next();
+            }
+            fout.close();
+        }
+    }
+
+
     //
     void Server::DumpWordTopicToMongo()
     {
         mongocxx::pool ClientToModel(mongocxx::uri{_mongo_uri});
         auto conn = ClientToModel.acquire();
-        auto doc_topicCollection = (*conn)[_mongo_db][_mongo_collection];
+        auto word_topicCollection = (*conn)[_mongo_db][_mongo_collection];
         mongocxx::options::update updateOpts;
         updateOpts.upsert(true);
-        //bsoncxx::builder::stream::document index_builder;
-        //index_builder << "block_idx" << 1 << "docId" << 1;
-        //doc_topicCollection.create_index(index_builder.view(), {});
+        bsoncxx::builder::stream::document wordId_builder;
+        wordId_builder << "block_idx" << 1 << "wordId" << 1;
+        word_topicCollection.create_index(wordId_builder.view(), {});
         Log::Info("Server %d: Dump model...\n", server_id_);
         for (int i = 0; i < tables_.size(); ++i)
         {
@@ -478,6 +537,16 @@ namespace multiverso
             int size = table->ElementSize();
             while (iter.HasNext())
             {
+                if(0 != iter.Row()->NonzeroSize())
+                {
+                    RowBase* rowbase = iter.Row();
+
+                    //RowIterator<integer_t>* rowderived = dynamic_cast<RowIterator<integer_t>*>(rowbase);
+
+                    //auto rowId = iter.Row()->RowId();
+                    //auto iter2 = iter.Row()->Iterator();
+
+                }
                 //fout << iter.Row()->ToString() << std::endl;
 
                 iter.Next();

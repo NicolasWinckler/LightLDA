@@ -258,6 +258,7 @@ namespace multiverso
                 ":" + std::to_string(iter.Value());
             iter.Next();
         }
+        //static_assert(std::is_same<iterator,std::string>::value,"in toString what is this fucking type?? int32_t?");
         return result;
     }
 

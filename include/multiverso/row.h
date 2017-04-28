@@ -12,6 +12,8 @@
 namespace multiverso
 {
     class RowBaseIterator;
+    template <typename T>
+    class RowIterator;
 
     /*! \brief Interface of row */
     class RowBase
@@ -84,10 +86,10 @@ namespace multiverso
          * \return serialized string
          */
         virtual std::string ToString() = 0;
+        //virtual Iterator();
     };
 
-    template <typename T>
-    class RowIterator;
+
 
     /*!
      * \brief A hybrid row, can be either DENSE row or SPARSE row

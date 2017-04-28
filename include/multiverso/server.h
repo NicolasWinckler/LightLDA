@@ -71,6 +71,7 @@ namespace multiverso
         
         void DumpModel();
         void DumpWordTopicToMongo();
+        void DumpModel2();
         // area of member variables ------------------------------------------/
         int server_id_;             // server identity
         int worker_proc_count_;     // total number of worker processes
