@@ -36,6 +36,7 @@ namespace multiverso
             std::string output_dir = config.output_dir;
             server_ = new Server(reg_info_.proc_rank, reg_info_.proc_count, 
                 kSERVER_ENDPOINT.c_str(),output_dir);
+            server_->SetMongoParameters(config.mongo_uri, config.mongo_db, config.mongo_collection);
         }
 #endif
 

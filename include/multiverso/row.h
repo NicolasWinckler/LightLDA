@@ -8,7 +8,8 @@
  */
 
 #include "meta.h"
-
+#include <iostream>
+#include <type_traits>
 namespace multiverso
 {
     class RowBaseIterator;
@@ -86,7 +87,7 @@ namespace multiverso
          * \return serialized string
          */
         virtual std::string ToString() = 0;
-        //virtual Iterator();
+        
     };
 
 
@@ -111,7 +112,7 @@ namespace multiverso
         Row(integer_t row_id, Format format, integer_t capacity, 
             void *memory = nullptr);
         ~Row();
-
+        
         int Add(integer_t key, void *delta) override;
         int Add(integer_t key, T delta);
         int Add(void *delta) override;

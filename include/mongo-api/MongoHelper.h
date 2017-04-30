@@ -25,7 +25,11 @@
 
 #include <bsoncxx/builder/stream/helpers.hpp>
 #include <bsoncxx/types.hpp>
+#include <mongocxx/options/find.hpp>
+#include <mongocxx/pool.hpp>
 
+#include "mongocxx/options/index.hpp"
+#include <mongocxx/bulk_write.hpp>
 
 #include <unordered_map>
 
@@ -38,36 +42,88 @@ using bsoncxx::builder::stream::open_document;
 using namespace bsoncxx;
 
 
-        class MongoConfig
+class MongoConfig
+{
+public:
+
+    MongoConfig(const std::string& uri="mongodb://localhost:27017",
+                const std::string& dbName="test",
+                const std::string& collection="trainingDataCollection") :
+            _mongo_uri(uri),
+            _mongo_db(dbName),
+            _mongo_collection(collection)
+    {
+    }
+    void SetMongoParameters(const std::string& uri,
+                            const std::string& dbName,
+                            const std::string& collection)
+    {
+        _mongo_uri=uri;
+        _mongo_db=dbName;
+        _mongo_collection=collection;
+    }
+
+    virtual ~MongoConfig() {}
+protected:
+
+    std::string _mongo_uri;
+    std::string _mongo_db;
+    std::string _mongo_collection;
+
+};
+
+class MongoHelper : public MongoConfig
+{
+public:
+
+    MongoHelper(const std::string& uri="mongodb://localhost:27017",
+                const std::string& dbName="test",
+                const std::string& collection="trainingDataCollection",
+                bool bulk_ordered=false) : 
+            MongoConfig(uri,dbName,collection),
+            _mongo_pool(nullptr),
+            _mongo_bulk(nullptr),
+            _mongo_bulk_opt(),
+            kBulkSize(1000)
+    {
+        _mongo_bulk_opt.ordered(bulk_ordered);
+        _mongo_bulk = std::move(std::unique_ptr<mongocxx::bulk_write>(new mongocxx::bulk_write(_mongo_bulk_opt)));
+    }
+
+    virtual ~MongoHelper() {}
+
+    void SetMongoParameters(const std::string& uri,
+                            const std::string& dbName,
+                            const std::string& collection)
+    {
+        MongoConfig::SetMongoParameters(uri,dbName,collection);
+        _mongo_pool = std::move(std::unique_ptr<mongocxx::pool>(new mongocxx::pool(mongocxx::uri{_mongo_uri})));
+    }
+
+    void WriteBulkToDB()
+    {
+        auto conn = _mongo_pool->acquire();
+        auto collection = (*conn)[_mongo_db][_mongo_collection];
+        mongocxx::stdx::optional<mongocxx::result::bulk_write> result = collection.bulk_write(*_mongo_bulk);
+    }
+
+    void WriteBulkToDB(int32_t count)
+    {
+        if( ((count) % kBulkSize) == 0)
         {
-        public:
+            WriteBulkToDB();
+            _mongo_bulk.reset(new mongocxx::bulk_write(_mongo_bulk_opt));
+        }
+    }
 
 
-            MongoConfig(const std::string& uri="mongodb://localhost:27017",
-                        const std::string& dbName="test",
-                        const std::string& collection="trainingDataCollection") :
-                    _mongo_uri(uri),
-                    _mongo_db(dbName),
-                    _mongo_collection(collection)
-            {
-            }
-            void SetMongoParameters(const std::string& uri,
-                                    const std::string& dbName,
-                                    const std::string& collection)
-            {
-                _mongo_uri=uri;
-                _mongo_db=dbName;
-                _mongo_collection=collection;
-            }
+protected:
+    std::unique_ptr<mongocxx::pool> _mongo_pool;
+    std::unique_ptr<mongocxx::bulk_write> _mongo_bulk;
+    mongocxx::options::bulk_write _mongo_bulk_opt;
+    const int32_t kBulkSize;
 
-            virtual ~MongoConfig() {}
-        protected:
-
-            std::string _mongo_uri;
-            std::string _mongo_db;
-            std::string _mongo_collection;
-
-        };
+};
 
 
 

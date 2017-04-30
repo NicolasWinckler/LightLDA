@@ -30,7 +30,7 @@ namespace multiverso
 {
     // Initializes the basic info and starts a server thread.
     Server::Server(int server_id, int num_worker_process, std::string endpoint, const std::string& outDir) :
-        MongoConfig(),
+        MongoHelper(),
         clocks_(num_worker_process, 0),
         clock_msg_(num_worker_process, nullptr),
         lock_pool_(41),
@@ -456,14 +456,105 @@ namespace multiverso
         }
     }
 
-
+    // 
     void Server::DumpModel()
+    {
+        Log::Info("Server %d: Dump model...\n", server_id_);
+
+
+        mongocxx::pool ClientToModel(mongocxx::uri{_mongo_uri});
+        auto conn = ClientToModel.acquire();
+        auto word_topicCollection = (*conn)[_mongo_db][_mongo_collection];
+        mongocxx::options::update updateOpts;
+        updateOpts.upsert(true);
+        bsoncxx::builder::stream::document wordId_builder;
+        wordId_builder << "serverId" << 1 << "tableId"<< 1 << "wordId" << 1;
+        word_topicCollection.create_index(wordId_builder.view(), {});
+        int32_t count=0;
+
+        for (int i = 0; i < tables_.size(); ++i)
+        {
+            // dump model to file server_$server_id$_table_$table_id$.model
+            /*std::string file_name;
+            if(!output_dir_.empty())
+                file_name = output_dir_ + "/" + "server_" + std::to_string(server_id_)
+                            + "_table_" + std::to_string(i) + ".model";
+            else
+                file_name = "server_" + std::to_string(server_id_)
+                            + "_table_" + std::to_string(i) + ".model";
+            std::ofstream fout(file_name);*/
+
+
+            Table *table = tables_[i];
+            TableIterator iter = table->Iterator();
+            int size = table->ElementSize();
+
+            while (iter.HasNext())
+            {
+                //std::cout << "NonzeroSize = " << iter.Row()->NonzeroSize() << std::endl;
+                if(0 != iter.Row()->NonzeroSize())
+                {
+                    RowBase* rowbase = iter.Row();
+
+                    Row<int32_t >* rowderived = reinterpret_cast<Row<int32_t >*>(rowbase);
+                    //std::string result = "";
+                    //result += std::to_string(rowderived->RowId());
+                    auto wordId = rowderived->RowId();
+                    // filter
+                    auto filter = bsoncxx::builder::stream::document{}
+                            << "serverId" << server_id_
+                            << "tableId" << i
+                            << "wordId" << wordId
+                            << bsoncxx::builder::stream::finalize;
+
+                    auto wordTopic_array = bsoncxx::builder::stream::array{};
+                    RowIterator<integer_t> iter2 = rowderived->Iterator();
+                    for (integer_t i = 0; iter2.HasNext(); ++i)
+                    {
+                        auto topicId = iter2.Key();
+                        auto topicCount = iter2.Value();
+                        wordTopic_array << bsoncxx::builder::stream::open_document
+                                        << "topicId" << topicId
+                                        << "topicCount" << topicCount
+                                        << bsoncxx::builder::stream::close_document;
+                        //result += " " + std::to_string(iter2.Key()) +
+                        //          ":" + std::to_string(iter2.Value());
+                        iter2.Next();
+                    }
+                    bsoncxx::builder::stream::document doc{};
+
+                    // code below ok when creating the collection for the first time,
+                    doc << "$set" << bsoncxx::builder::stream::open_document
+                        << "serverId" << server_id_
+                        << "tableId" << i
+                        << "wordId" << wordId
+                        << "ucpt"
+                        << bsoncxx::builder::stream::open_array
+                        << bsoncxx::builder::concatenate(wordTopic_array.view())
+                        << bsoncxx::builder::stream::close_array
+                        << bsoncxx::builder::stream::close_document
+                            ;
+                    bsoncxx::document::value fUpdate = doc << bsoncxx::builder::stream::finalize;
+                    mongocxx::model::update_one upsert_operation{filter.view(), fUpdate.view()};
+                    upsert_operation.upsert(true);
+                    _mongo_bulk->append(upsert_operation);
+                    ++count;
+                    WriteBulkToDB(count);
+                    //fout << result << std::endl;
+                }
+                iter.Next();
+            }
+            //fout.close();
+            WriteBulkToDB();
+        }
+    }
+
+    //dump to file
+    void Server::DumpModel3()
     {
         Log::Info("Server %d: Dump model...\n", server_id_);
         for (int i = 0; i < tables_.size(); ++i)
         {
-            Log::Info("Server OK 1\n");
-
             // dump model to file server_$server_id$_table_$table_id$.model
             std::string file_name;
             if(!output_dir_.empty())
@@ -477,23 +568,18 @@ namespace multiverso
             Table *table = tables_[i];
             TableIterator iter = table->Iterator();
             int size = table->ElementSize();
+
             while (iter.HasNext())
             {
-                //Log::Info("Server OK 2\n");
-                std::cout << "NonzeroSize = " << iter.Row()->NonzeroSize();
+                //std::cout << "NonzeroSize = " << iter.Row()->NonzeroSize() << std::endl;
                 if(0 != iter.Row()->NonzeroSize())
                 {
-                    //Log::Info("Server OK 2\n");
                     RowBase* rowbase = iter.Row();
 
-                    Row<int32_t >* rowderived = dynamic_cast<Row<int32_t >*>(rowbase);
+                    Row<int32_t >* rowderived = reinterpret_cast<Row<int32_t >*>(rowbase);
                     std::string result = "";
-                    Log::Info("before rowderived->RowId() \n");
                     result += std::to_string(rowderived->RowId());
-                    Log::Info("after rowderived->RowId() \n");
                     RowIterator<integer_t> iter2 = rowderived->Iterator();
-                    //auto rowId = iter.Row()->RowId();
-                    //auto iter2 = iter.Row()->Iterator();
                     for (integer_t i = 0; iter2.HasNext(); ++i)
                     {
                         result += " " + std::to_string(iter2.Key()) +
@@ -503,17 +589,12 @@ namespace multiverso
                         iter2.Next();
                     }
                     fout << result << std::endl;
-
-
                 }
-                //fout << iter.Row()->ToString() << std::endl;
-
                 iter.Next();
             }
             fout.close();
         }
     }
-
 
     //
     void Server::DumpWordTopicToMongo()
@@ -524,7 +605,7 @@ namespace multiverso
         mongocxx::options::update updateOpts;
         updateOpts.upsert(true);
         bsoncxx::builder::stream::document wordId_builder;
-        wordId_builder << "block_idx" << 1 << "wordId" << 1;
+        wordId_builder << "serverId" << 1 << "tableId"<< 1 << "wordId" << 1;
         word_topicCollection.create_index(wordId_builder.view(), {});
         Log::Info("Server %d: Dump model...\n", server_id_);
         for (int i = 0; i < tables_.size(); ++i)

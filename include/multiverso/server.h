@@ -30,7 +30,7 @@ namespace multiverso
      *        one or more Server instances with different IDs. And the 
      *        parameters will be distributed among such servers.
      */
-    class Server : public MongoConfig
+    class Server : public MongoHelper
     {
     public:
         /*!
@@ -72,6 +72,8 @@ namespace multiverso
         void DumpModel();
         void DumpWordTopicToMongo();
         void DumpModel2();
+        void DumpModel3();
+
         // area of member variables ------------------------------------------/
         int server_id_;             // server identity
         int worker_proc_count_;     // total number of worker processes

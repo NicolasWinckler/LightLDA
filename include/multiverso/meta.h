@@ -129,9 +129,10 @@ namespace multiverso
             is_pipeline = true;
             server_endpoint_file = "";
             output_dir = "";
-            MongoUri = "mongodb://localhost:27017";
-            MongoDB = "test";
-            MongoWordTopicCollection = "wordTopicModel";
+            mongo_uri = "mongodb://localhost:27017";
+            mongo_db = "test";
+            mongo_collection = "wordTopicModel";
+            is_debugmode=false;
         }
 
         /*
@@ -150,9 +151,10 @@ namespace multiverso
         /// server ZMQ socket endpoint file in MPI-free version
         std::string server_endpoint_file;
         std::string output_dir;
-        std::string MongoUri;
-        std::string MongoDB;
-        std::string MongoWordTopicCollection;
+        std::string mongo_uri;
+        std::string mongo_db;
+        std::string mongo_collection;
+        bool is_debugmode;
     };
 
     struct RegisterInfo
