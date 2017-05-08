@@ -492,7 +492,7 @@ namespace multiverso
             while (iter.HasNext())
             {
                 //std::cout << "NonzeroSize = " << iter.Row()->NonzeroSize() << std::endl;
-                if(0 != iter.Row()->NonzeroSize())
+                if(0 != iter.Row()->NonzeroSize() && i==0)
                 {
                     RowBase* rowbase = iter.Row();
 
@@ -509,7 +509,7 @@ namespace multiverso
 
                     auto wordTopic_array = bsoncxx::builder::stream::array{};
                     RowIterator<integer_t> iter2 = rowderived->Iterator();
-                    for (integer_t i = 0; iter2.HasNext(); ++i)
+                    for (integer_t j = 0; iter2.HasNext(); ++j)
                     {
                         auto topicId = iter2.Key();
                         auto topicCount = iter2.Value();
@@ -523,7 +523,58 @@ namespace multiverso
                     }
                     bsoncxx::builder::stream::document doc{};
 
-                    // code below ok when creating the collection for the first time,
+
+                    doc << "$set" << bsoncxx::builder::stream::open_document
+                        << "serverId" << server_id_
+                        << "tableId" << i
+                        << "wordId" << wordId
+                        << "ucpt"
+                        << bsoncxx::builder::stream::open_array
+                        << bsoncxx::builder::concatenate(wordTopic_array.view())
+                        << bsoncxx::builder::stream::close_array
+                        << bsoncxx::builder::stream::close_document
+                            ;
+                    bsoncxx::document::value fUpdate = doc << bsoncxx::builder::stream::finalize;
+                    mongocxx::model::update_one upsert_operation{filter.view(), fUpdate.view()};
+                    upsert_operation.upsert(true);
+                    _mongo_bulk->append(upsert_operation);
+                    ++count;
+                    WriteBulkToDB(count);
+                    //fout << result << std::endl;
+                }
+
+                if(0 != iter.Row()->NonzeroSize() && i==1)
+                {
+                    RowBase* rowbase = iter.Row();
+
+                    Row<int64_t >* rowderived = reinterpret_cast<Row<int64_t >*>(rowbase);
+                    //std::string result = "";
+                    //result += std::to_string(rowderived->RowId());
+                    auto wordId = rowderived->RowId();
+                    // filter
+                    auto filter = bsoncxx::builder::stream::document{}
+                            << "serverId" << server_id_
+                            << "tableId" << i
+                            << "wordId" << wordId
+                            << bsoncxx::builder::stream::finalize;
+
+                    auto wordTopic_array = bsoncxx::builder::stream::array{};
+                    RowIterator<int64_t> iter2 = rowderived->Iterator();
+                    for (int64_t j = 0; iter2.HasNext(); ++j)
+                    {
+                        auto topicId = iter2.Key();
+                        auto topicCount = iter2.Value();
+                        wordTopic_array << bsoncxx::builder::stream::open_document
+                                        << "topicId" << topicId
+                                        << "topicCount" << topicCount
+                                        << bsoncxx::builder::stream::close_document;
+                        //result += " " + std::to_string(iter2.Key()) +
+                        //          ":" + std::to_string(iter2.Value());
+                        iter2.Next();
+                    }
+                    bsoncxx::builder::stream::document doc{};
+
+
                     doc << "$set" << bsoncxx::builder::stream::open_document
                         << "serverId" << server_id_
                         << "tableId" << i
