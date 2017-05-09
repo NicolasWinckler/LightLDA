@@ -54,10 +54,16 @@ namespace multiverso { namespace lightlda
             config.server_endpoint_file = Config::server_file;
             config.output_dir = Config::output_dir;
 
+            std::string logFileNamePrefix;
+            if(!Config::output_dir.empty())
+                logFileNamePrefix = Config::output_dir + "/LightLDA.";
+            else
+                logFileNamePrefix = "LightLDA.";
+
 
             Multiverso::Init(trainers, param_loader, config, &argc, &argv);
 
-            Log::ResetLogFile("LightLDA."
+            Log::ResetLogFile(logFileNamePrefix
                 + std::to_string(clock()) + ".log");
 
             data_stream = CreateDataStream();
