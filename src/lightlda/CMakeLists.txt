@@ -12,6 +12,7 @@ set(HEADERS
 	trainer.h
 	util.h
 	Vocab.h
+	qxlda.hpp
 	)
 
 set(SRCS 
@@ -26,6 +27,7 @@ set(SRCS
 	sampler.cpp
 	trainer.cpp
 	Vocab.cpp
+	qxlda.cpp
 	)
 
 
@@ -89,8 +91,8 @@ install(TARGETS ${EXE_NAME} DESTINATION bin)
 
 
 ####### Generate lightlda Executable
-set(SRCS qxlda.cpp)
-set(EXE_NAME qxlda)
+set(SRCS runqxlda.cpp)
+set(EXE_NAME runqxlda)
 
 include_directories(${INCLUDE_DIRECTORIES})
 Add_Executable(${EXE_NAME} ${SRCS})
