@@ -113,8 +113,8 @@ namespace multiverso{
             integer_t row = tuple.row;
             integer_t col = tuple.col;
 
-            if (row >= 0 && requests_.find({ table, -1, -1 }) != requests_.end() ||
-                col >= 0 && requests_.find({ table, row, -1 }) != requests_.end())
+            if ((row >= 0 && requests_.find({ table, -1, -1 }) != requests_.end()) ||
+                (col >= 0 && requests_.find({ table, row, -1 }) != requests_.end()))
             {
                 continue;
             }

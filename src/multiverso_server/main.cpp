@@ -23,7 +23,7 @@ void Help()
         + "-endpoint <ip:port> -- The ZMQ socket endpoint of the current server\n"
         + "-logfile <filename> -- The log filename\n"
         + "-loglevel <level> -- The log level\n";
-    printf(help_info.c_str());
+    printf("%s",help_info.c_str());
 }
 
 // Returns the LogLevel according to the string.

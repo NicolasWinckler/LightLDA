@@ -266,7 +266,7 @@ namespace multiverso { namespace lightlda
             Type int_type = Type::Int;
             Type longlong_type = Type::LongLong;
             multiverso::Format dense_format = multiverso::Format::Dense;
-            multiverso::Format sparse_format = multiverso::Format::Sparse;
+            //multiverso::Format sparse_format = multiverso::Format::Sparse;
 
             Multiverso::AddServerTable(kWordTopicTable, num_vocabs,
                 num_topics, int_type, dense_format);

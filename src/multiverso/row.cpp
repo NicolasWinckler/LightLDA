@@ -13,8 +13,15 @@ namespace multiverso
     //-- Row stuff definition ------------------------------------------------/
     template <typename T>
     Row<T>::Row(integer_t row_id, Format format, integer_t capacity, void* memory)
-        : row_id_(row_id), format_(format), capacity_(capacity), memory_(memory), 
-          nonzero_size_(0), num_deleted_key_(0), has_memory_(false)
+        : row_id_(row_id),
+          format_(format),
+          capacity_(capacity),
+          nonzero_size_(0),
+          num_deleted_key_(0),
+          has_memory_(false),
+          memory_(memory),
+          key_(nullptr),
+          value_(nullptr)
     {
         if (format_ == Format::Dense)
         {
@@ -265,7 +272,8 @@ namespace multiverso
     template <typename T>
     bool Row<T>::FindPosition(const integer_t key, int& bucket)
     {
-        bool found = false; bucket = -1;    // REMARK: found never used, to be reviewed and fixed
+        //bool found = false;     // REMARK: found never used, to be reviewed and fixed
+        bucket = -1;
         integer_t probes = 0;
         integer_t index = key % capacity_; // hash function
         while (true)

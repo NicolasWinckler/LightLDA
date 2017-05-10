@@ -132,18 +132,19 @@ namespace multiverso
                 msg_pack->GetHeaderInfo(&msg_type, &arrow, &src, &dst);
                 switch (msg_type)
                 {
-                case MsgType::Register: Process_Register(msg_pack); break;
-                case MsgType::Close: Process_Close(msg_pack); break;
-                case MsgType::Barrier: inited_ = Process_Barrier(msg_pack); break;
-                case MsgType::CreateTable: Process_CreateTable(msg_pack); break;
-                case MsgType::SetRow: Process_SetRow(msg_pack); break;
-                case MsgType::Clock: Process_Clock(msg_pack); break;
-                case MsgType::EndTrain: Process_EndTrain(msg_pack); break;
-                case MsgType::Get: Process_Get(msg_pack); break;
-                case MsgType::Add: inited_ ? update_queue_.Push(msg_pack) 
-                    : Process_Add(msg_pack); break;
-                // case MsgType::Add: Process_Add(msg_pack); break;
-                // other message process...
+                    case MsgType::Register: Process_Register(msg_pack); break;
+                    case MsgType::Close: Process_Close(msg_pack); break;
+                    case MsgType::Barrier: inited_ = Process_Barrier(msg_pack); break;
+                    case MsgType::CreateTable: Process_CreateTable(msg_pack); break;
+                    case MsgType::SetRow: Process_SetRow(msg_pack); break;
+                    case MsgType::Clock: Process_Clock(msg_pack); break;
+                    case MsgType::EndTrain: Process_EndTrain(msg_pack); break;
+                    case MsgType::Get: Process_Get(msg_pack); break;
+                    case MsgType::Add: inited_ ? update_queue_.Push(msg_pack)
+                        : Process_Add(msg_pack); break;
+                    // case MsgType::Add: Process_Add(msg_pack); break;
+                    // other message process...
+                    default: break;
                 }
             }
         }
@@ -428,33 +429,7 @@ namespace multiverso
         }
     }
     //-- end of server process routine ---------------------------------------/
-    
-    void Server::DumpModel2()
-    {
-        Log::Info("Server %d: Dump model...\n", server_id_);
-        for (int i = 0; i < tables_.size(); ++i)
-        {
-            // dump model to file server_$server_id$_table_$table_id$.model
-            std::string file_name;
-            if(!output_dir_.empty())
-                file_name = output_dir_ + "/" + "server_" + std::to_string(server_id_)
-                + "_table_" + std::to_string(i) + ".model";
-            else
-                file_name = "server_" + std::to_string(server_id_)
-                            + "_table_" + std::to_string(i) + ".model";
-            std::ofstream fout(file_name);
 
-            Table *table = tables_[i];
-            TableIterator iter = table->Iterator();
-            int size = table->ElementSize();
-            while (iter.HasNext())
-            {
-                fout << iter.Row()->ToString() << std::endl;
-                iter.Next();
-            }
-            fout.close();
-        }
-    }
 
     // 
     void Server::DumpModel()
@@ -487,7 +462,7 @@ namespace multiverso
 
             Table *table = tables_[i];
             TableIterator iter = table->Iterator();
-            int size = table->ElementSize();
+            //int size = table->ElementSize();
 
             while (iter.HasNext())
             {
@@ -600,90 +575,4 @@ namespace multiverso
         }
     }
 
-    //dump to file
-    void Server::DumpModel3()
-    {
-        Log::Info("Server %d: Dump model...\n", server_id_);
-        for (int i = 0; i < tables_.size(); ++i)
-        {
-            // dump model to file server_$server_id$_table_$table_id$.model
-            std::string file_name;
-            if(!output_dir_.empty())
-                file_name = output_dir_ + "/" + "server_" + std::to_string(server_id_)
-                            + "_table_" + std::to_string(i) + ".model";
-            else
-                file_name = "server_" + std::to_string(server_id_)
-                            + "_table_" + std::to_string(i) + ".model";
-            std::ofstream fout(file_name);
-
-            Table *table = tables_[i];
-            TableIterator iter = table->Iterator();
-            int size = table->ElementSize();
-
-            while (iter.HasNext())
-            {
-                //std::cout << "NonzeroSize = " << iter.Row()->NonzeroSize() << std::endl;
-                if(0 != iter.Row()->NonzeroSize())
-                {
-                    RowBase* rowbase = iter.Row();
-
-                    Row<int32_t >* rowderived = reinterpret_cast<Row<int32_t >*>(rowbase);
-                    std::string result = "";
-                    result += std::to_string(rowderived->RowId());
-                    RowIterator<integer_t> iter2 = rowderived->Iterator();
-                    for (integer_t i = 0; iter2.HasNext(); ++i)
-                    {
-                        result += " " + std::to_string(iter2.Key()) +
-                                  ":" + std::to_string(iter2.Value());
-
-
-                        iter2.Next();
-                    }
-                    fout << result << std::endl;
-                }
-                iter.Next();
-            }
-            fout.close();
-        }
-    }
-
-    //
-    void Server::DumpWordTopicToMongo()
-    {
-        mongocxx::pool ClientToModel(mongocxx::uri{_mongo_uri});
-        auto conn = ClientToModel.acquire();
-        auto word_topicCollection = (*conn)[_mongo_db][_mongo_collection];
-        mongocxx::options::update updateOpts;
-        updateOpts.upsert(true);
-        bsoncxx::builder::stream::document wordId_builder;
-        wordId_builder << "serverId" << 1 << "tableId"<< 1 << "wordId" << 1;
-        word_topicCollection.create_index(wordId_builder.view(), {});
-        Log::Info("Server %d: Dump model...\n", server_id_);
-        for (int i = 0; i < tables_.size(); ++i)
-        {
-
-            //std::ofstream fout(file_name);
-
-            Table *table = tables_[i];
-            TableIterator iter = table->Iterator();
-            int size = table->ElementSize();
-            while (iter.HasNext())
-            {
-                if(0 != iter.Row()->NonzeroSize())
-                {
-                    RowBase* rowbase = iter.Row();
-
-                    //RowIterator<integer_t>* rowderived = dynamic_cast<RowIterator<integer_t>*>(rowbase);
-
-                    //auto rowId = iter.Row()->RowId();
-                    //auto iter2 = iter.Row()->Iterator();
-
-                }
-                //fout << iter.Row()->ToString() << std::endl;
-
-                iter.Next();
-            }
-            //fout.close();
-        }
-    }
 }

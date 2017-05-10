@@ -18,7 +18,7 @@ namespace multiverso
                 filename.c_str());
             return;
         }
-        while (fscanf(file, "%d %s", &id, &str) > 0)
+        while (fscanf(file, "%d %s", &id, &str[0]) > 0)
         {
             ids.push_back(id);
             endpoints.push_back(str);
