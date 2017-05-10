@@ -7,7 +7,7 @@ set(INCLUDE_DIRECTORIES
 	${ZMQ_INCLUDE_DIR}
 	${MPI_CXX_INCLUDE_PATH}
 	${CMAKE_CURRENT_SOURCE_DIR}
-	${CMAKE_SOURCE_DIR}/dev/src
+	${CMAKE_SOURCE_DIR}/src/lightlda
 	${Multiverso_INCLUDE_DIR}
 	)
 
@@ -21,8 +21,17 @@ set(DEPENDENCIES
 )
 
 if(Mongo_CXX_Driver_FOUND)
-	set(INCLUDE_DIRECTORIES ${Mongo_CXX_Driver_INCLUDE_DIR} ${INCLUDE_DIRECTORIES})
-	set(DEPENDENCIES ${Mongo_CXX_Driver_LIBRARIES} ${DEPENDENCIES})
+
+	set(INCLUDE_DIRECTORIES
+			${Mongo_CXX_Driver_INCLUDE_DIR}
+			${CMAKE_SOURCE_DIR}/include/mongo-api
+			${INCLUDE_DIRECTORIES}
+			)
+
+	set(DEPENDENCIES
+			${Mongo_CXX_Driver_LIBRARIES}
+			${DEPENDENCIES}
+			)
 endif()
 
 
