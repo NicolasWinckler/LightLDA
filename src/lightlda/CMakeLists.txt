@@ -37,6 +37,7 @@ set(INCLUDE_DIRECTORIES
 	${CMAKE_CURRENT_SOURCE_DIR}
 	${Multiverso_INCLUDE_DIR}
 	${Boost_INCLUDE_DIR}
+	${CMAKE_SOURCE_DIR}/include/lightlda
 	)
 
 # Note: order of the dependencies matter for linking with static libs

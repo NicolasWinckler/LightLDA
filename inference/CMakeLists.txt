@@ -1,7 +1,7 @@
 
 
-set(HEADERS inferer.h)
-set(SRCS inferer.cpp)
+set(HEADERS inferer.h inferWrapper.hpp)
+set(SRCS inferer.cpp inferWrapper.cpp)
 
 set(INCLUDE_DIRECTORIES 
 	${ZMQ_INCLUDE_DIR}
@@ -49,7 +49,7 @@ install(TARGETS ${LIBRARY_NAME}_static DESTINATION lib)
 install(FILES ${HEADERS} DESTINATION include)
 
 
-####### Generate Executable
+####### Generate Executable (old)
 set(DEPENDENCIES lightlda_infer)
 set(SRCS infer.cpp)
 set(EXE_NAME infer)
@@ -60,6 +60,16 @@ target_link_libraries(${EXE_NAME} ${DEPENDENCIES})
 
 install(TARGETS ${EXE_NAME} DESTINATION bin)
 
+####### Generate Executable
+set(DEPENDENCIES lightlda_infer)
+set(SRCS InferNewDocument.cpp)
+set(EXE_NAME inferNewDoc)
+
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+Add_Executable(${EXE_NAME} ${SRCS})
+target_link_libraries(${EXE_NAME} ${DEPENDENCIES})
+
+install(TARGETS ${EXE_NAME} DESTINATION bin)
 
 
 

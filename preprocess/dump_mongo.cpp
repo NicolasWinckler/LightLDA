@@ -397,7 +397,7 @@ int main(int argc, char* argv[])
         printf("Usage: dump_binary <libsvm_input> <word_dict_file_input> <binary_output_dir> <output_file_offset>\n");
         exit(1);
     }
-    bool dumpToFileToo = true;// in case for debugging
+    bool dumpToFileToo = false;// in case for debugging
 
     std::string libsvm_file_name(argv[1]);
     std::string word_dict_file_name(argv[2]);
