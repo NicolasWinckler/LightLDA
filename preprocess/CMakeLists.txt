@@ -26,8 +26,8 @@ if(Mongo_CXX_Driver_FOUND)
 
     set(INCLUDE_DIRECTORY
             ${CMAKE_CURRENT_SOURCE_DIR}
-            ${CMAKE_SOURCE_DIR}/src/lightlda
-            ${CMAKE_SOURCE_DIR}/include/mongo-api
+            ${LightLDA_INCLUDE_DIR}
+            ${CMAKE_SOURCE_DIR}/mongo/include
             ${Mongo_CXX_Driver_INCLUDE_DIR}
             )
 

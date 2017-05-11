@@ -24,14 +24,11 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/${CMAKE_BUILD_TYPE})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib/${CMAKE_BUILD_TYPE})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib/${CMAKE_BUILD_TYPE})
 
-set(Multiverso_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/include)
+set(Multiverso_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/multiverso/include)
+set(LightLDA_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/lightlda/include)
 
-#add_subdirectory(dev/src)
-add_subdirectory(src)
-
+add_subdirectory(multiverso)
+add_subdirectory(lightlda)
 add_subdirectory(inference)
 add_subdirectory(preprocess)
 
-if(Mongo_CXX_Driver_FOUND)
-    #add_subdirectory(mongo-api)
-endif(Mongo_CXX_Driver_FOUND)

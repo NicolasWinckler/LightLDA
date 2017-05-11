@@ -1,27 +1,13 @@
 #!/bin/bash
 
-# build lightlda
-#git clone -b multiverso-initial git@github.com:Microsoft/multiverso.git
-git clone -b multiverso-initial git@github.com:NicolasWinckler/multiverso.git
-MULTIVERSO_DIR="$PWD/multiverso"
-THIRDPARTY_DIR="$PWD/multiverso/third_party"
-CMAKE_ARGS="-DUSE_MULTIVERSO_PATH=$MULTIVERSO_DIR"
-CMAKE_ARGS+=" -DUSE_ZMQ_PATH=$THIRDPARTY_DIR"
-CMAKE_ARGS+=" -DMPI_CXX_COMPILER=$THIRDPARTY_DIR/bin/mpicxx"
-
-# install lightlda dependencies, i.e. multiverso, zmq and mpi
-cd multiverso
-cd third_party
-sh install.sh
-cd ..
-make -j4 all
-
-cd ..
-# install lightlda
-mkdir build
+THIRD_PARTY_PATH="/usr/local"
+number_of_processes=`nproc`
+rm -rf build
+mkdir -p build
 cd build
+CMAKE_ARGS+=" -DUSE_ZMQ_PATH=$THIRD_PARTY_PATH"
+CMAKE_ARGS+=" -DMPI_CXX_COMPILER=$THIRD_PARTY_PATH/bin/mpicxx"
+CMAKE_ARGS+=" -DCMAKE_INSTALL_PREFIX=$THIRD_PARTY_PATH"
 cmake $CMAKE_ARGS ..
-make -j4
+make -j$number_of_processes
 cd ..
-
-

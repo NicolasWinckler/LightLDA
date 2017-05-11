@@ -1,13 +1,19 @@
 
 
-set(HEADERS inferer.h inferWrapper.hpp)
-set(SRCS inferer.cpp inferWrapper.cpp)
+set(HEADERS
+        include/inferer.h
+        include/inferWrapper.hpp
+        )
+set(SRCS
+        src/inferer.cpp
+        src/inferWrapper.cpp
+        )
 
 set(INCLUDE_DIRECTORIES 
 	${ZMQ_INCLUDE_DIR}
 	${MPI_CXX_INCLUDE_PATH}
-	${CMAKE_CURRENT_SOURCE_DIR}
-	${CMAKE_SOURCE_DIR}/src/lightlda
+	${CMAKE_CURRENT_SOURCE_DIR}/include
+	${LightLDA_INCLUDE_DIR}
 	${Multiverso_INCLUDE_DIR}
 	)
 
@@ -24,7 +30,7 @@ if(Mongo_CXX_Driver_FOUND)
 
 	set(INCLUDE_DIRECTORIES
 			${Mongo_CXX_Driver_INCLUDE_DIR}
-			${CMAKE_SOURCE_DIR}/include/mongo-api
+			${CMAKE_SOURCE_DIR}/mongo/include
 			${INCLUDE_DIRECTORIES}
 			)
 
@@ -51,7 +57,7 @@ install(FILES ${HEADERS} DESTINATION include)
 
 ####### Generate Executable (old)
 set(DEPENDENCIES lightlda_infer)
-set(SRCS infer.cpp)
+set(SRCS run/infer.cpp)
 set(EXE_NAME infer)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
@@ -62,7 +68,7 @@ install(TARGETS ${EXE_NAME} DESTINATION bin)
 
 ####### Generate Executable
 set(DEPENDENCIES lightlda_infer)
-set(SRCS InferNewDocument.cpp)
+set(SRCS run/inferNewDocument.cpp)
 set(EXE_NAME inferNewDoc)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
