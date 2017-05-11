@@ -36,16 +36,16 @@ namespace multiverso { namespace lightlda
         //init current data block
         if(id_ == 0)
         {
-	    data_stream_->BeforeDataAccess();
+	        data_stream_->BeforeDataAccess();
             DataBlock& data = data_stream_->CurrDataBlock();
             data.set_meta(&(meta_->local_vocab(block)));
             alias_->Init(meta_->alias_index(block, 0));
             alias_->Build(-1, model_);
-	}
+	    }
         barrier_->Wait();
 
         // build alias table 
-	DataBlock& data = data_stream_->CurrDataBlock();
+	    DataBlock& data = data_stream_->CurrDataBlock();
         const LocalVocab& local_vocab = data.meta();
         StopWatch watch; watch.Start();
         for (const int32_t* pword = local_vocab.begin(0) + id_;
@@ -67,7 +67,7 @@ namespace multiverso { namespace lightlda
         {
             Log::Info("iter=%d\n", iter);
         }
-	DataBlock& data = data_stream_->CurrDataBlock();
+	    DataBlock& data = data_stream_->CurrDataBlock();
         const LocalVocab& local_vocab = data.meta();
         int32_t lastword = local_vocab.LastWord(0);
         // Inference with lightlda sampler

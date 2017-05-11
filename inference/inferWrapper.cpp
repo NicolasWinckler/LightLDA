@@ -18,7 +18,12 @@ namespace multiverso
 
         void inferWrapper::Run(int argc, char** argv)
         {
-            Log::ResetLogFile("LightLDA_infer." + std::to_string(clock()) + ".log");
+            std::string logFileNamePrefix;
+            if(!Config::output_dir.empty())
+                logFileNamePrefix = Config::output_dir + "/LightLDA_infer.";
+            else
+                logFileNamePrefix = "LightLDA_infer.";
+            Log::ResetLogFile(logFileNamePrefix + std::to_string(clock()) + ".log");
             Config::Init(argc, argv);
             //init meta
             m_meta.Init();
@@ -166,6 +171,7 @@ namespace multiverso
                     auto filter = bsoncxx::builder::stream::document{}
                             << "block_idx" << block
                             << "docId" << doc_i
+                            << "mode" << "inference"
                             << bsoncxx::builder::stream::finalize;
                     Document* doc = data_block.GetOneDoc(doc_i);
                     doc_topic_counter.Clear();
@@ -177,6 +183,7 @@ namespace multiverso
                     auto subdocstream = ucpt_doc << "$set" << bsoncxx::builder::stream::open_document
                                                  << "block_idx" << block
                                                  << "docId" <<  doc_i
+                                                 << "mode" << "inference"
                                                  << "ucpt" << bsoncxx::builder::stream::open_array;
 
                     while (iter.HasNext())
