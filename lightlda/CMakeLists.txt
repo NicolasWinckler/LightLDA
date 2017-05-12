@@ -74,7 +74,7 @@ install(FILES ${HEADERS} DESTINATION include/lightlda)
 
 
 ####### Generate lightlda Executable
-set(SRCS src/lightlda.cpp)
+set(SRCS run/lightlda.cpp)
 set(EXE_NAME lightlda)
 
 include_directories(${INCLUDE_DIRECTORIES})
@@ -91,7 +91,7 @@ install(TARGETS ${EXE_NAME} DESTINATION bin)
 
 
 ####### Generate lightlda Executable (with mongoDB I/O)
-set(SRCS src/runqxlda.cpp)
+set(SRCS run/runlda_mongo.cpp)
 set(EXE_NAME runlda_mongo)
 
 include_directories(${INCLUDE_DIRECTORIES})
