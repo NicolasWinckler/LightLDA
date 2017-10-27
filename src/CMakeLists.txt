@@ -32,7 +32,6 @@ set(INCLUDE_DIRECTORIES
 	${MPI_CXX_INCLUDE_PATH}
 	${CMAKE_CURRENT_SOURCE_DIR}
 	${Multiverso_INCLUDE_DIR}
-	${Boost_INCLUDE_DIR}
 	)
 
 # Note: order of the dependencies matter for linking with static libs
@@ -82,7 +81,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 Add_Executable(${EXE_NAME} ${SRCS})
 
 #target_link_libraries(${EXE_NAME} ${LIBRARY_NAME} ${DEPENDENCIES})
-target_link_libraries(${EXE_NAME} ${LIBRARY_NAME}_static ${DEPENDENCIES} ${Multiverso_LIBRARY_STATIC} ${Boost_LIBRARIES})
+target_link_libraries(${EXE_NAME} ${LIBRARY_NAME}_static ${DEPENDENCIES} ${Multiverso_LIBRARY_STATIC})
 
 install(TARGETS ${EXE_NAME} DESTINATION bin)
 

@@ -15,7 +15,6 @@
 #include <cstring>
 #include <limits.h>
 #include <unistd.h>
-#include <boost/filesystem.hpp>
 
 namespace multiverso { namespace lightlda
     {
